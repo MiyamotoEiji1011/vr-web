@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SkyWay P2P Room | Publish / Subscribe</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo">☁️</div>
+        <div>
+          <div class="title">SkyWay P2P Room</div>
+          <div class="subtitle">Publish / Subscribe 切り替えデモ</div>
+        </div>
+      </div>
+
+      <div class="status">
+        <span class="pill" id="conn-pill">未接続</span>
+        <span class="muted">ID:</span> <span class="mono" id="my-id">-</span>
+      </div>
+    </header>
+
+    <main class="container">
+      <section class="card">
+        <h2 class="card-title">接続設定</h2>
+
+        <div class="grid">
+          <label class="field">
+            <span class="label">Room name</span>
+            <input id="room-name" type="text" placeholder="例: demo-room" />
+          </label>
+
+          <div class="field">
+            <span class="label">モード</span>
+            <div class="segmented" role="tablist" aria-label="mode">
+              <label class="seg-item">
+                <input type="radio" name="mode" value="both" checked />
+                <span>両方</span>
+              </label>
+              <label class="seg-item">
+                <input type="radio" name="mode" value="publish" />
+                <span>Publishのみ</span>
+              </label>
+              <label class="seg-item">
+                <input type="radio" name="mode" value="subscribe" />
+                <span>Subscribeのみ</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="field">
+            <span class="label">Publish設定（Publishのみ / 両方で有効）</span>
+            <div class="toggles">
+              <label class="toggle">
+                <input id="pub-video" type="checkbox" checked />
+                <span>映像をPublish</span>
+              </label>
+              <label class="toggle">
+                <input id="pub-audio" type="checkbox" checked />
+                <span>音声をPublish</span>
+              </label>
+            </div>
+            <div class="hint" id="pub-hint">※ モードが Subscribeのみ の場合は無効になります</div>
+          </div>
+
+          <div class="field actions">
+            <button id="join" class="btn primary">Join</button>
+            <button id="leave" class="btn" disabled>Leave</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="two-col">
+        <section class="card">
+          <div class="card-head">
+            <h2 class="card-title">Local</h2>
+            <div class="small muted" id="local-note">Publishが有効なときだけ表示</div>
+          </div>
+
+          <div class="video-wrap">
+            <video id="local-video" muted playsinline></video>
+            <div class="video-overlay" id="local-overlay">Local Preview</div>
+          </div>
+
+          <div class="row">
+            <button id="mute-av" class="btn" disabled>映像/音声 OFF</button>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-head">
+            <h2 class="card-title">Remote</h2>
+            <div class="small muted" id="remote-note">PublishされたStreamを自動で取得</div>
+          </div>
+
+          <div class="remote-tools">
+            <label class="toggle">
+              <input id="auto-subscribe" type="checkbox" checked />
+              <span>自動Subscribe</span>
+            </label>
+            <button id="clear-remote" class="btn">Remote表示をクリア</button>
+          </div>
+
+          <div class="remote-grid" id="remote-media-area"></div>
+        </section>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <h2 class="card-title">Publications</h2>
+          <div class="small muted">手動Subscribe用ボタン（自動Subscribe OFFのとき便利）</div>
+        </div>
+        <div id="button-area" class="button-area"></div>
+      </section>
+    </main>
+
+    <!-- SkyWay UMD（skyway_room が生える） -->
+    <script src="https://cdn.jsdelivr.net/npm/@skyway-sdk/room/dist/skyway_room-latest.js"></script>
+    <script src="script.js"></script>
+  </body>
+</html>
