@@ -1,0 +1,8 @@
+{
+  "name": "SkyWay VR Connect",
+  "description": "A high-performance VR-compatible video communication app using SkyWay and A-Frame. Features peer-to-peer streaming with head-tracked VR perspectives and fine-tuned spatial adjustments.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}

@@ -1,0 +1,31 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SkyWay VR Connect</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
+    <style>
+      body { margin: 0; overflow: hidden; background-color: #0b0f17; }
+      #root { height: 100vh; width: 100vw; }
+      /* Hide A-Frame VR button until scene is loaded */
+      .a-enter-vr { bottom: 80px !important; }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>
