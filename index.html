@@ -124,42 +124,64 @@
     <!-- =========================
          VR ROOT (A-Frame / WebXR)
          ========================= -->
-    <div id="vr-root" class="vr-hidden">
-      <!-- A-Frame assets: ここに動画要素を追加して a-video の src に渡す -->
-      <a-scene
-        id="vr-scene"
-        background="color: #0b0f17"
-        renderer="antialias: true; colorManagement: true"
-        vr-mode-ui="enabled: true"
-        embedded
-      >
-        <a-assets id="vr-assets"></a-assets>
+    <a-scene
+      id="vr-scene"
+      background="color: #0b0f17"
+      renderer="antialias: true; colorManagement: true"
+      vr-mode-ui="enabled: true"
+      embedded
+    >
+      <a-assets id="vr-assets"></a-assets>
 
-        <!-- Floor -->
-        <a-plane rotation="-90 0 0" width="50" height="50" color="#101827"></a-plane>
+      <a-plane rotation="-90 0 0" width="50" height="50" color="#101827"></a-plane>
 
-        <!-- Simple room -->
-        <a-entity position="0 1.6 0">
-          <a-camera wasd-controls-enabled="false"></a-camera>
-        </a-entity>
+      <!-- Camera rig -->
+      <a-entity id="camera-rig" position="0 1.6 0">
+        <a-camera id="vr-camera" wasd-controls-enabled="false">
+          <!-- ★ここがポイント：頭に追従するHUD（スクリーン群） -->
+          <a-entity id="vr-screens" position="0 -0.2 -1.6" rotation="-8 0 0"></a-entity>
+        </a-camera>
+      </a-entity>
 
-        <!-- Screen wall -->
-        <a-entity id="vr-screens" position="0 1.6 -3"></a-entity>
+      <a-entity light="type: ambient; intensity: 0.8"></a-entity>
+      <a-entity light="type: directional; intensity: 0.6" position="1 3 2"></a-entity>
+    </a-scene>
 
-        <!-- Light -->
-        <a-entity light="type: ambient; intensity: 0.8"></a-entity>
-        <a-entity light="type: directional; intensity: 0.6" position="1 3 2"></a-entity>
-      </a-scene>
 
       <div class="vr-hud">
         <div class="vr-hud-left">
           <div class="vr-hud-title">VR表示（WebXR）</div>
-          <div class="vr-hud-sub">Quest 2: ブラウザ右下のゴーグルアイコンでVRに入れます</div>
+          <div class="vr-hud-sub">スクリーンは視点に追従します。オフセットを調整できます。</div>
         </div>
+
+        <div class="vr-controls">
+          <label>
+            距離(Z)
+            <input id="vr-z" type="range" min="0.5" max="3.0" step="0.1" value="1.6" />
+            <span id="vr-zv">1.6</span>m
+          </label>
+          <label>
+            高さ(Y)
+            <input id="vr-y" type="range" min="-0.8" max="0.8" step="0.05" value="-0.2" />
+            <span id="vr-yv">-0.2</span>
+          </label>
+          <label>
+            横(X)
+            <input id="vr-x" type="range" min="-1.0" max="1.0" step="0.05" value="0" />
+            <span id="vr-xv">0</span>
+          </label>
+          <label>
+            角度(Pitch)
+            <input id="vr-pitch" type="range" min="-45" max="45" step="1" value="-8" />
+            <span id="vr-pv">-8</span>°
+          </label>
+        </div>
+
         <div class="vr-hud-right">
           <button id="exit-vr" class="btn primary">UIに戻る</button>
         </div>
       </div>
+
     </div>
 
     <!-- SkyWay UMD（skyway_room が生える） -->

@@ -78,6 +78,16 @@ const el = {
   vrAssets: document.getElementById("vr-assets"),
   vrScreens: document.getElementById("vr-screens"),
   vrScene: document.getElementById("vr-scene"),
+
+    // VR sliders
+  vrX: document.getElementById("vr-x"),
+  vrY: document.getElementById("vr-y"),
+  vrZ: document.getElementById("vr-z"),
+  vrPitch: document.getElementById("vr-pitch"),
+  vrXv: document.getElementById("vr-xv"),
+  vrYv: document.getElementById("vr-yv"),
+  vrZv: document.getElementById("vr-zv"),
+  vrPv: document.getElementById("vr-pv"),
 };
 
 function currentMode() {
@@ -258,6 +268,24 @@ function setVrEnabled(on) {
 
 el.toggleVr.onclick = () => setVrEnabled(!vrState.enabled);
 el.exitVr.onclick = () => setVrEnabled(false);
+
+function applyVrHudOffset() {
+  // a-entity#vr-screens は a-camera の子。position/rotation を変えると「目の前HUD」が変わる。
+  const x = parseFloat(el.vrX.value);
+  const y = parseFloat(el.vrY.value);
+  const z = parseFloat(el.vrZ.value);
+  const pitch = parseFloat(el.vrPitch.value);
+
+  el.vrXv.textContent = x.toFixed(2).replace(/\.00$/, "");
+  el.vrYv.textContent = y.toFixed(2).replace(/\.00$/, "");
+  el.vrZv.textContent = z.toFixed(1);
+  el.vrPv.textContent = pitch.toFixed(0);
+
+  // zは「前方」なので A-Frame ではマイナス方向
+  el.vrScreens.setAttribute("position", `${x} ${y} ${-z}`);
+  el.vrScreens.setAttribute("rotation", `${pitch} 0 0`);
+}
+
 
 // ------------------------------
 // SkyWay session state
@@ -502,6 +530,15 @@ el.join.onclick = async () => {
     me = null;
   }
 };
+
+["input", "change"].forEach((evt) => {
+  el.vrX.addEventListener(evt, applyVrHudOffset);
+  el.vrY.addEventListener(evt, applyVrHudOffset);
+  el.vrZ.addEventListener(evt, applyVrHudOffset);
+  el.vrPitch.addEventListener(evt, applyVrHudOffset);
+});
+applyVrHudOffset();
+
 
 // init
 setConnState("disconnected");

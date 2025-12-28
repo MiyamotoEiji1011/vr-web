@@ -333,3 +333,28 @@ input[type="text"]:focus{
 
 .vr-hud-left { display: flex; flex-direction: column; gap: 2px; }
 .vr-hud-right { display: flex; gap: 10px; }
+
+
+.vr-controls{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  align-items:center;
+  justify-content:center;
+}
+
+.vr-controls label{
+  display:flex;
+  gap:8px;
+  align-items:center;
+  padding:8px 10px;
+  border-radius: 12px;
+  background: rgba(11,15,23,.35);
+  border: 1px solid rgba(34,48,71,.65);
+  color: rgba(229,231,235,.95);
+  font-size:12px;
+}
+
+.vr-controls input[type="range"]{
+  width: 140px;
+}
