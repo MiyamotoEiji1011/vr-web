@@ -545,14 +545,33 @@ function setupVrNavButtons() {
 }
 
 // ★重要:2Dで作ったvideoを「移動」しない。VR用videoを別で作って srcObject を共有。
-function addOrUpdateVideoToVR(publicationId, mediaEl2D, publisherId = 'Unknown') {
+// ★重要：2Dで作ったvideoを「移動」しない。VR用videoを別で作って映像トラックだけ渡す。
+function addOrUpdateVideoToVR(publicationId, mediaEl2D) {
   if (!mediaEl2D) return;
-  if (!el.mediaHub) return;
-  if (!el.vrScreens) return;
-  
-  // Already exists?
-  const existingIndex = vrState.streams.findIndex(s => s.publicationId === publicationId);
-  if (existingIndex !== -1) return;
+  if (vrState.videoMap.has(publicationId)) return;
+
+  if (!el.vrScreens) {
+    console.warn("[VR] #vr-screens not found");
+    return;
+  }
+  if (!el.mediaHub) {
+    console.warn("[VR] #media-hub not found");
+    return;
+  }
+
+  const src = mediaEl2D.srcObject;
+  if (!src || typeof src.getVideoTracks !== "function") {
+    console.warn("[VR] mediaEl2D.srcObject is missing / not a MediaStream");
+    return;
+  }
+
+  // ---- 映像トラックだけを抜く（ここが効く）----
+  const videoTracks = src.getVideoTracks();
+  if (!videoTracks.length) {
+    console.warn("[VR] No video tracks in srcObject");
+    return;
+  }
+  const videoOnlyStream = new MediaStream(videoTracks);
 
   const assetId = `vr-video-${publicationId}`;
 
@@ -560,70 +579,55 @@ function addOrUpdateVideoToVR(publicationId, mediaEl2D, publisherId = 'Unknown')
   vrVideo.id = assetId;
   vrVideo.setAttribute("playsinline", "");
   vrVideo.setAttribute("webkit-playsinline", "");
+  vrVideo.setAttribute("muted", "");   // 属性としても付ける
+  vrVideo.muted = true;               // プロパティもtrue
   vrVideo.autoplay = true;
+  vrVideo.loop = true;
 
-  // autoplayブロック回避:VRテクスチャ用は muted で確実に回す（映像だけ）
-  vrVideo.muted = true;
-
-  // 2D videoが持っている MediaStream を共有
-  vrVideo.srcObject = mediaEl2D.srcObject;
-
-  // display:none ではなく「画面外」に置いて生かす
+  // display:none だとA-Frame側で更新止まることがあるので「画面外」に置く前提
   el.mediaHub.appendChild(vrVideo);
+
+  // MediaStreamをセット（映像だけ）
+  vrVideo.srcObject = videoOnlyStream;
+
+  // ---- 再生を明示的に開始する（Questで特に重要）----
+  const tryPlay = () => {
+    const p = vrVideo.play();
+    if (p && typeof p.catch === "function") p.catch(() => {});
+  };
+  if (vrVideo.readyState >= 1) {
+    tryPlay();
+  } else {
+    vrVideo.addEventListener("loadedmetadata", tryPlay, { once: true });
+  }
 
   // VRのスクリーンを作成（HUD: vr-screensの子）
   const groupId = `vr-group-${publicationId}`;
 
   const group = document.createElement("a-entity");
   group.setAttribute("id", groupId);
-  group.setAttribute("visible", "false"); // Initially hidden
 
   const frame = document.createElement("a-plane");
-  frame.setAttribute("width", "2.4");
-  frame.setAttribute("height", "1.35");
+  frame.setAttribute("width", "1.66");
+  frame.setAttribute("height", "0.96");
   frame.setAttribute("position", "0 0 -0.01");
-  frame.setAttribute("color", "#1e293b");
-  group.appendChild(frame);
+  frame.setAttribute("color", "#0f172a");
+  frame.setAttribute("material", "opacity: 0.85");
 
   const screen = document.createElement("a-video");
   screen.setAttribute("src", `#${assetId}`);
-  screen.setAttribute("width", "2.3");
-  screen.setAttribute("height", "1.3");
-  screen.setAttribute("position", "0 0 0");
+  screen.setAttribute("width", "1.6");
+  screen.setAttribute("height", "0.9");
+
+  group.appendChild(frame);
   group.appendChild(screen);
 
   el.vrScreens.appendChild(group);
 
-  // Add to streams array
-  vrState.streams.push({ 
-    publicationId, 
-    videoElId: assetId, 
-    groupId,
-    publisherId,
-    kind: 'video'
-  });
-  
-  // If this is the first stream, show it
-  if (vrState.streams.length === 1) {
-    vrState.currentStreamIndex = 0;
-  }
-  
-  updateVrStreamDisplay();
-  
-  // Add stream info to debug
-  if (debugState.enabled) {
-    const videoTrack = mediaEl2D.srcObject?.getVideoTracks?.()?.[0];
-    if (videoTrack) {
-      const settings = videoTrack.getSettings();
-      debugState.streamInfo.set(publicationId, {
-        text: `${publicationId.substring(0, 8)}: ${settings.width}x${settings.height}@${settings.frameRate || '?'}fps`
-      });
-      updateDebugStreamInfo();
-    }
-  }
-  
-  console.log('Added stream to VR:', publicationId, 'Total streams:', vrState.streams.length);
+  vrState.videoMap.set(publicationId, { videoElId: assetId, groupId });
+  layoutVrScreens();
 }
+
 
 function removeVideoFromVR(publicationId) {
   const streamIndex = vrState.streams.findIndex(s => s.publicationId === publicationId);
