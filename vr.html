@@ -53,6 +53,16 @@
         </a-text>
       </a-entity>
 
+      <!-- 6DoF コントローラー: HTC Vive -->
+      <a-entity id="leftVive" 
+                vive-controls="hand: left" 
+                controller-listener="hand: left; type: vive">
+      </a-entity>
+      <a-entity id="rightVive" 
+                vive-controls="hand: right" 
+                controller-listener="hand: right; type: vive">
+      </a-entity>
+
       <!-- 6DoF コントローラー: Oculus Touch -->
       <a-entity id="leftOculus" 
                 oculus-touch-controls="hand: left" 

@@ -1,6 +1,7 @@
 /**
  * a_frame.js
  * A-Frameカスタムコンポーネントとコントローラー管理
+ * モード切り替え機能を含む
  */
 
 /* global AFRAME, THREE */
@@ -36,6 +37,12 @@ window.controllerStates = {
     detected: false,
     type: null // 'oculus' or 'vive'
   }
+};
+
+// モード切り替え状態管理（エッジ検出用）
+const modeToggleState = {
+  xButtonPressed: false,  // Xボタンの現在の状態
+  xKeyPressed: false      // Xキーの現在の状態
 };
 
 /**
@@ -79,6 +86,7 @@ AFRAME.registerComponent('rotation-reader', {
 /**
  * A-Frameコンポーネント: controller-listener
  * コントローラーのボタンとジョイスティック入力を監視
+ * モード切り替え機能を含む
  */
 AFRAME.registerComponent('controller-listener', {
   schema: {
@@ -95,27 +103,29 @@ AFRAME.registerComponent('controller-listener', {
     this.el.addEventListener('controllerconnected', () => {
       state.detected = true;
       state.type = type;
+      console.log(`[CONTROLLER] ${type} ${hand} controller connected`);
     });
 
     this.el.addEventListener('controllerdisconnected', () => {
       state.detected = false;
+      console.log(`[CONTROLLER] ${type} ${hand} controller disconnected`);
     });
 
     // Oculus Touch イベント
     if (type === 'oculus') {
-      this.setupOculusEvents(state);
+      this.setupOculusEvents(state, hand);
     }
 
     // Vive コントローラー イベント
     if (type === 'vive') {
-      this.setupViveEvents(state);
+      this.setupViveEvents(state, hand);
     }
   },
 
   /**
    * Oculus Touchのイベントをセットアップ
    */
-  setupOculusEvents: function(state) {
+  setupOculusEvents: function(state, hand) {
     // Trigger
     this.el.addEventListener('triggerdown', () => { state.trigger = 1; });
     this.el.addEventListener('triggerup', () => { state.trigger = 0; });
@@ -124,11 +134,25 @@ AFRAME.registerComponent('controller-listener', {
     this.el.addEventListener('gripdown', () => { state.grip = 1; });
     this.el.addEventListener('gripup', () => { state.grip = 0; });
 
-    // A/X button
-    this.el.addEventListener('abuttondown', () => { state.buttonA = 1; });
-    this.el.addEventListener('abuttonup', () => { state.buttonA = 0; });
-    this.el.addEventListener('xbuttondown', () => { state.buttonA = 1; });
-    this.el.addEventListener('xbuttonup', () => { state.buttonA = 0; });
+    // A/X button（左コントローラーのXボタンでモード切り替え）
+    if (hand === 'left') {
+      this.el.addEventListener('xbuttondown', () => {
+        state.buttonA = 1;
+        // エッジ検出：前回がfalseで今回trueならトグル
+        if (!modeToggleState.xButtonPressed) {
+          modeToggleState.xButtonPressed = true;
+          this.handleModeToggle();
+        }
+      });
+      this.el.addEventListener('xbuttonup', () => {
+        state.buttonA = 0;
+        modeToggleState.xButtonPressed = false;
+      });
+    } else {
+      // 右コントローラーのAボタン（モード切り替えなし）
+      this.el.addEventListener('abuttondown', () => { state.buttonA = 1; });
+      this.el.addEventListener('abuttonup', () => { state.buttonA = 0; });
+    }
 
     // B/Y button
     this.el.addEventListener('bbuttondown', () => { state.buttonB = 1; });
@@ -146,7 +170,7 @@ AFRAME.registerComponent('controller-listener', {
   /**
    * Viveコントローラーのイベントをセットアップ
    */
-  setupViveEvents: function(state) {
+  setupViveEvents: function(state, hand) {
     // Trigger
     this.el.addEventListener('triggerdown', () => { state.trigger = 1; });
     this.el.addEventListener('triggerup', () => { state.trigger = 0; });
@@ -155,9 +179,23 @@ AFRAME.registerComponent('controller-listener', {
     this.el.addEventListener('gripdown', () => { state.grip = 1; });
     this.el.addEventListener('gripup', () => { state.grip = 0; });
 
-    // Menu button
-    this.el.addEventListener('menudown', () => { state.menu = 1; });
-    this.el.addEventListener('menuup', () => { state.menu = 0; });
+    // Menu button（左コントローラーのMenuボタンでモード切り替え）
+    if (hand === 'left') {
+      this.el.addEventListener('menudown', () => {
+        state.menu = 1;
+        if (!modeToggleState.xButtonPressed) {
+          modeToggleState.xButtonPressed = true;
+          this.handleModeToggle();
+        }
+      });
+      this.el.addEventListener('menuup', () => {
+        state.menu = 0;
+        modeToggleState.xButtonPressed = false;
+      });
+    } else {
+      this.el.addEventListener('menudown', () => { state.menu = 1; });
+      this.el.addEventListener('menuup', () => { state.menu = 0; });
+    }
 
     // Trackpad
     this.el.addEventListener('trackpaddown', () => { state.buttonA = 1; });
@@ -167,6 +205,17 @@ AFRAME.registerComponent('controller-listener', {
       state.trackpad.x = evt.detail.x;
       state.trackpad.y = evt.detail.y;
     });
+  },
+
+  /**
+   * モード切り替えハンドラー
+   */
+  handleModeToggle: function() {
+    if (window.appToggleMode) {
+      window.appToggleMode();
+    } else {
+      console.warn('[MODE TOGGLE] appToggleMode function not available');
+    }
   }
 });
 
@@ -230,7 +279,7 @@ AFRAME.registerComponent('controller-monitor', {
     
     if (type === 'oculus') {
       text += `Trigger:${state.trigger} Grip:${state.grip} `;
-      text += `A:${state.buttonA} B:${state.buttonB}\n`;
+      text += `A/X:${state.buttonA} B/Y:${state.buttonB}\n`;
       text += `Joy: (x:${state.thumbstick.x.toFixed(2)}, y:${state.thumbstick.y.toFixed(2)})\n`;
     } else if (type === 'vive') {
       text += `Trigger:${state.trigger} Grip:${state.grip} `;
@@ -243,6 +292,34 @@ AFRAME.registerComponent('controller-monitor', {
 });
 
 /**
+ * キーボードのXキーでモード切り替え
+ */
+function setupKeyboardModeToggle() {
+  window.addEventListener('keydown', (event) => {
+    if (event.key === 'x' || event.key === 'X') {
+      // エッジ検出：前回がfalseで今回trueならトグル
+      if (!modeToggleState.xKeyPressed) {
+        modeToggleState.xKeyPressed = true;
+        
+        if (window.appToggleMode) {
+          window.appToggleMode();
+        } else {
+          console.warn('[MODE TOGGLE] appToggleMode function not available');
+        }
+      }
+    }
+  });
+
+  window.addEventListener('keyup', (event) => {
+    if (event.key === 'x' || event.key === 'X') {
+      modeToggleState.xKeyPressed = false;
+    }
+  });
+  
+  console.log('[KEYBOARD] Mode toggle key (X) registered');
+}
+
+/**
  * A-Frameコンポーネントの初期化
  * カメラにcontroller-monitorをアタッチ
  */
@@ -251,6 +328,11 @@ function initializeAFrameComponents() {
   if (camera) {
     camera.setAttribute('controller-monitor', '');
   }
+  
+  // キーボードのモード切り替えを設定
+  setupKeyboardModeToggle();
+  
+  console.log('[A-FRAME] Components initialized');
 }
 
 // DOMロード完了後にコンポーネントを初期化
