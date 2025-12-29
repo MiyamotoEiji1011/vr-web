@@ -16,6 +16,34 @@ const FRAME_H = 720;
 const FPS = 30;
 
 // ------------------------------
+// グローバルなコントローラー状態管理
+// ------------------------------
+window.controllerStates = {
+  left: {
+    trigger: 0,
+    grip: 0,
+    buttonA: 0, // X button for left Oculus
+    buttonB: 0, // Y button for left Oculus
+    menu: 0,    // Vive menu button
+    thumbstick: { x: 0, y: 0 },
+    trackpad: { x: 0, y: 0 }, // Vive trackpad
+    detected: false,
+    type: null // 'oculus' or 'vive'
+  },
+  right: {
+    trigger: 0,
+    grip: 0,
+    buttonA: 0, // A button for right Oculus
+    buttonB: 0, // B button for right Oculus
+    menu: 0,    // Vive menu button
+    thumbstick: { x: 0, y: 0 },
+    trackpad: { x: 0, y: 0 }, // Vive trackpad
+    detected: false,
+    type: null // 'oculus' or 'vive'
+  }
+};
+
+// ------------------------------
 // A-Frame カスタムコンポーネント: rotation-reader
 // ------------------------------
 AFRAME.registerComponent('rotation-reader', {
@@ -50,20 +78,90 @@ AFRAME.registerComponent('rotation-reader', {
 });
 
 // ------------------------------
+// A-Frame カスタムコンポーネント: controller-listener
+// ------------------------------
+AFRAME.registerComponent('controller-listener', {
+  schema: {
+    hand: { type: 'string', default: 'left' },
+    type: { type: 'string', default: 'oculus' } // 'oculus' or 'vive'
+  },
+
+  init: function() {
+    const hand = this.data.hand;
+    const type = this.data.type;
+    const state = window.controllerStates[hand];
+
+    // コントローラーが接続されたらdetectedをtrueに
+    this.el.addEventListener('controllerconnected', () => {
+      state.detected = true;
+      state.type = type;
+    });
+
+    this.el.addEventListener('controllerdisconnected', () => {
+      state.detected = false;
+    });
+
+    // Oculus Touch イベント
+    if (type === 'oculus') {
+      // Trigger
+      this.el.addEventListener('triggerdown', () => { state.trigger = 1; });
+      this.el.addEventListener('triggerup', () => { state.trigger = 0; });
+
+      // Grip
+      this.el.addEventListener('gripdown', () => { state.grip = 1; });
+      this.el.addEventListener('gripup', () => { state.grip = 0; });
+
+      // A/X button
+      this.el.addEventListener('abuttondown', () => { state.buttonA = 1; });
+      this.el.addEventListener('abuttonup', () => { state.buttonA = 0; });
+      this.el.addEventListener('xbuttondown', () => { state.buttonA = 1; });
+      this.el.addEventListener('xbuttonup', () => { state.buttonA = 0; });
+
+      // B/Y button
+      this.el.addEventListener('bbuttondown', () => { state.buttonB = 1; });
+      this.el.addEventListener('bbuttonup', () => { state.buttonB = 0; });
+      this.el.addEventListener('ybuttondown', () => { state.buttonB = 1; });
+      this.el.addEventListener('ybuttonup', () => { state.buttonB = 0; });
+
+      // Thumbstick
+      this.el.addEventListener('thumbstickmoved', (evt) => {
+        state.thumbstick.x = evt.detail.x;
+        state.thumbstick.y = evt.detail.y;
+      });
+    }
+
+    // Vive コントローラー イベント
+    if (type === 'vive') {
+      // Trigger
+      this.el.addEventListener('triggerdown', () => { state.trigger = 1; });
+      this.el.addEventListener('triggerup', () => { state.trigger = 0; });
+
+      // Grip
+      this.el.addEventListener('gripdown', () => { state.grip = 1; });
+      this.el.addEventListener('gripup', () => { state.grip = 0; });
+
+      // Menu button
+      this.el.addEventListener('menudown', () => { state.menu = 1; });
+      this.el.addEventListener('menuup', () => { state.menu = 0; });
+
+      // Trackpad
+      this.el.addEventListener('trackpaddown', () => { state.buttonA = 1; });
+      this.el.addEventListener('trackpadup', () => { state.buttonA = 0; });
+      
+      this.el.addEventListener('trackpadmoved', (evt) => {
+        state.trackpad.x = evt.detail.x;
+        state.trackpad.y = evt.detail.y;
+      });
+    }
+  }
+});
+
+// ------------------------------
 // A-Frame カスタムコンポーネント: controller-monitor
 // ------------------------------
 AFRAME.registerComponent('controller-monitor', {
   init: function() {
     this.lastUpdate = 0;
-    // コントローラーエンティティを取得
-    this.leftControllers = [
-      document.getElementById('leftVive'),
-      document.getElementById('leftOculus')
-    ];
-    this.rightControllers = [
-      document.getElementById('rightVive'),
-      document.getElementById('rightOculus')
-    ];
   },
   
   tick: function(time) {
@@ -71,78 +169,52 @@ AFRAME.registerComponent('controller-monitor', {
     if (time - this.lastUpdate < 100) return;
     this.lastUpdate = time;
 
-    const leftInfo = this.getControllerInfo(this.leftControllers);
-    const rightInfo = this.getControllerInfo(this.rightControllers);
+    const leftState = window.controllerStates.left;
+    const rightState = window.controllerStates.right;
 
-    const display = this.formatControllerDisplay(rightInfo, leftInfo);
+    const display = this.formatControllerDisplay(rightState, leftState);
     if (controllerInfoEl) {
       controllerInfoEl.setAttribute("value", display);
     }
   },
 
-  getControllerInfo: function(controllers) {
-    for (let controller of controllers) {
-      if (!controller) continue;
-      
-      // コントローラーのGamepadオブジェクトを取得
-      const trackedControls = controller.components['tracked-controls'];
-      if (!trackedControls) continue;
-      
-      const gamepad = trackedControls.controller;
-      if (!gamepad) continue;
-
-      // ボタンとAxesの情報を取得
-      const buttons = [];
-      if (gamepad.buttons) {
-        for (let i = 0; i < gamepad.buttons.length; i++) {
-          buttons.push({
-            index: i,
-            pressed: gamepad.buttons[i].pressed ? 1 : 0,
-            value: gamepad.buttons[i].value.toFixed(2)
-          });
-        }
-      }
-
-      const axes = {
-        x: gamepad.axes && gamepad.axes[0] ? gamepad.axes[0].toFixed(2) : "0.00",
-        y: gamepad.axes && gamepad.axes[1] ? gamepad.axes[1].toFixed(2) : "0.00"
-      };
-
-      return { buttons, axes, found: true };
-    }
-    
-    return { buttons: [], axes: { x: "0.00", y: "0.00" }, found: false };
-  },
-
-  formatControllerDisplay: function(rightInfo, leftInfo) {
+  formatControllerDisplay: function(rightState, leftState) {
     let text = "Controllers\n\n";
 
     // Right Controller
     text += "Right\n";
-    if (rightInfo.found) {
-      text += "Buttons: ";
-      if (rightInfo.buttons.length > 0) {
-        text += rightInfo.buttons.map(b => `B${b.index}:${b.pressed}`).join(" ");
-      } else {
-        text += "None";
+    if (rightState.detected) {
+      const type = rightState.type || 'unknown';
+      
+      if (type === 'oculus') {
+        text += `Trigger:${rightState.trigger} Grip:${rightState.grip} `;
+        text += `A:${rightState.buttonA} B:${rightState.buttonB}\n`;
+        text += `Joy: (x:${rightState.thumbstick.x.toFixed(2)}, y:${rightState.thumbstick.y.toFixed(2)})\n`;
+      } else if (type === 'vive') {
+        text += `Trigger:${rightState.trigger} Grip:${rightState.grip} `;
+        text += `Menu:${rightState.menu} Pad:${rightState.buttonA}\n`;
+        text += `Trackpad: (x:${rightState.trackpad.x.toFixed(2)}, y:${rightState.trackpad.y.toFixed(2)})\n`;
       }
-      text += `\nJoy: (x:${rightInfo.axes.x}, y:${rightInfo.axes.y})\n`;
     } else {
-      text += "Not detected\n";
+      text += "Not detected\n\n";
     }
 
     text += "\n";
 
     // Left Controller
     text += "Left\n";
-    if (leftInfo.found) {
-      text += "Buttons: ";
-      if (leftInfo.buttons.length > 0) {
-        text += leftInfo.buttons.map(b => `B${b.index}:${b.pressed}`).join(" ");
-      } else {
-        text += "None";
+    if (leftState.detected) {
+      const type = leftState.type || 'unknown';
+      
+      if (type === 'oculus') {
+        text += `Trigger:${leftState.trigger} Grip:${leftState.grip} `;
+        text += `X:${leftState.buttonA} Y:${leftState.buttonB}\n`;
+        text += `Joy: (x:${leftState.thumbstick.x.toFixed(2)}, y:${leftState.thumbstick.y.toFixed(2)})`;
+      } else if (type === 'vive') {
+        text += `Trigger:${leftState.trigger} Grip:${leftState.grip} `;
+        text += `Menu:${leftState.menu} Pad:${leftState.buttonA}\n`;
+        text += `Trackpad: (x:${leftState.trackpad.x.toFixed(2)}, y:${leftState.trackpad.y.toFixed(2)})`;
       }
-      text += `\nJoy: (x:${leftInfo.axes.x}, y:${leftInfo.axes.y})`;
     } else {
       text += "Not detected";
     }
