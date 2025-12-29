@@ -213,29 +213,21 @@ function addOrUpdateVideoToVR(publicationId, videoEl) {
   el.vrAssets.appendChild(videoEl);
 
   // a-video entity 作成
-  const entityId = `vr-screen-${publicationId}`;
+  const groupId = `vr-group-${publicationId}`;
   const screen = document.createElement("a-video");
-  screen.setAttribute("id", entityId);
   screen.setAttribute("src", `#${assetId}`);
   screen.setAttribute("width", "1.6");
   screen.setAttribute("height", "0.9");
   screen.setAttribute("rotation", "0 0 0");
 
-  // 縁取り（見やすく）
-  const frame = document.createElement("a-plane");
-  frame.setAttribute("width", "1.66");
-  frame.setAttribute("height", "0.96");
-  frame.setAttribute("position", "0 0 -0.01");
-  frame.setAttribute("color", "#0f172a");
-  frame.setAttribute("material", "opacity: 0.85");
-
+  // 映像をグループ化して配置を管理する
   const group = document.createElement("a-entity");
-  group.appendChild(frame);
+  group.setAttribute("id", groupId);
   group.appendChild(screen);
 
   el.vrScreens.appendChild(group);
 
-  vrState.videoMap.set(publicationId, { videoElId: assetId, entityId });
+  vrState.videoMap.set(publicationId, { videoElId: assetId, entityId: groupId });
   layoutVrScreens();
 }
 
