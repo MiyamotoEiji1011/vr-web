@@ -1,4 +1,4 @@
-/* global skyway_room, THREE */
+/* global skyway_room */
 
 const {
   nowInSec,
@@ -87,15 +87,10 @@ const el = {
   vrZv: document.getElementById("vr-zv"),
   vrPv: document.getElementById("vr-pv"),
 
-  // VR Debug (HTML側に追加してある前提)
-  vrDebugToggle: document.getElementById("vr-debug-toggle"),
-  vrDebugAnchor: document.getElementById("vr-debug-anchor"),
-  vrDebugText: document.getElementById("vr-debug-text"),
-
   // media hub
   mediaHub: document.getElementById("media-hub"),
 
-  // Quality controls（HTML側に追加してある前提）
+  // Quality controls
   videoRes: document.getElementById("video-res"),
   videoFps: document.getElementById("video-fps"),
   videoHq: document.getElementById("video-hq"),
@@ -146,7 +141,6 @@ function updatePublishControls() {
   el.pubVideo.disabled = !publishEnabled || el.join.disabled;
   el.pubAudio.disabled = !publishEnabled || el.join.disabled;
 
-  // 映像ONのときだけ画質UIを使える
   if (el.videoRes) el.videoRes.disabled = !publishEnabled || el.join.disabled || !el.pubVideo.checked;
   if (el.videoFps) el.videoFps.disabled = !publishEnabled || el.join.disabled || !el.pubVideo.checked;
   if (el.videoHq) el.videoHq.disabled = !publishEnabled || el.join.disabled || !el.pubVideo.checked;
@@ -168,7 +162,7 @@ el.pubVideo?.addEventListener("change", updatePublishControls);
 updatePublishControls();
 
 // ------------------------------
-// VR: HUD offset sliders (screens + debug anchor)
+// VR: HUD offset sliders
 // ------------------------------
 function applyVrHudOffset() {
   const x = parseFloat(el.vrX.value);
@@ -182,130 +176,17 @@ function applyVrHudOffset() {
   el.vrPv.textContent = pitch.toFixed(0);
 
   // 前方は -Z
-  if (el.vrScreens) {
-    el.vrScreens.setAttribute("position", `${x} ${y} ${-z}`);
-    el.vrScreens.setAttribute("rotation", `${pitch} 0 0`);
-  }
-
-  // Debugは映像HUDと同じ距離/ピッチで、Yだけ上へ（被らない）
-  if (el.vrDebugAnchor) {
-    const debugY = y + 0.75; // 好みで調整
-    el.vrDebugAnchor.setAttribute("position", `${x} ${debugY} ${-z}`);
-    el.vrDebugAnchor.setAttribute("rotation", `${pitch} 0 0`);
-  }
+  el.vrScreens.setAttribute("position", `${x} ${y} ${-z}`);
+  el.vrScreens.setAttribute("rotation", `${pitch} 0 0`);
 }
 
 ["input", "change"].forEach((evt) => {
-  el.vrX?.addEventListener(evt, applyVrHudOffset);
-  el.vrY?.addEventListener(evt, applyVrHudOffset);
-  el.vrZ?.addEventListener(evt, applyVrHudOffset);
-  el.vrPitch?.addEventListener(evt, applyVrHudOffset);
+  el.vrX.addEventListener(evt, applyVrHudOffset);
+  el.vrY.addEventListener(evt, applyVrHudOffset);
+  el.vrZ.addEventListener(evt, applyVrHudOffset);
+  el.vrPitch.addEventListener(evt, applyVrHudOffset);
 });
 applyVrHudOffset();
-
-// ------------------------------
-// VR Debug: ON/OFF & loop
-// ------------------------------
-let vrDebugEnabled = false;
-
-function setVrDebugEnabled(on) {
-  vrDebugEnabled = on;
-  if (el.vrDebugAnchor) el.vrDebugAnchor.setAttribute("visible", on);
-  if (el.vrDebugText) {
-    el.vrDebugText.setAttribute(
-      "text",
-      `value: ${on ? "Debug ON" : "Debug OFF"}; color: #E5E7EB; width: 2.2; wrapCount: 40; baseline: top; align: left;`
-    );
-  }
-}
-
-el.vrDebugToggle?.addEventListener("change", (e) => {
-  setVrDebugEnabled(Boolean(e.target.checked));
-});
-setVrDebugEnabled(false);
-
-// 数学ユーティリティ
-function radToDeg(r) {
-  return (r * 180) / Math.PI;
-}
-
-// Quaternion -> Euler(Yaw/Pitch/Roll)
-function quatToYPR(q) {
-  // A-Frameは内部でTHREEを持つ
-  const e = new THREE.Euler().setFromQuaternion(q, "YXZ");
-  return {
-    yaw: radToDeg(e.y),
-    pitch: radToDeg(e.x),
-    roll: radToDeg(e.z),
-  };
-}
-
-function formatAxes(axes) {
-  if (!axes || !axes.length) return "-";
-  return axes.map((v, i) => `a${i}:${Number(v).toFixed(2)}`).join(" ");
-}
-
-function formatButtons(buttons) {
-  if (!buttons || !buttons.length) return "-";
-  // 主要だけ抜粋（環境で意味は変わるので “押されたか/値” を見る用途）
-  const pick = [0, 1, 2, 3, 4, 5, 6, 7];
-  return pick
-    .filter((i) => buttons[i])
-    .map((i) => `b${i}:${buttons[i].pressed ? "1" : "0"}(${Number(buttons[i].value).toFixed(2)})`)
-    .join(" ");
-}
-
-function getGamepadByHand(hand /* "left"|"right" */) {
-  const pads = navigator.getGamepads ? navigator.getGamepads() : [];
-  for (const gp of pads) {
-    if (!gp) continue;
-    if (gp.hand === hand) return gp; // Quest Browser等
-    const id = (gp.id || "").toLowerCase();
-    if (hand === "left" && id.includes("left")) return gp;
-    if (hand === "right" && id.includes("right")) return gp;
-  }
-  return null;
-}
-
-function updateVrDebugText() {
-  if (!vrDebugEnabled) return;
-  if (!el.vrDebugText) return;
-
-  // HMD姿勢：A-Frame camera の object3D
-  const camObj = document.getElementById("vr-camera")?.object3D;
-  const pos = camObj?.position;
-  const quat = camObj?.quaternion;
-
-  const ypr = quat ? quatToYPR(quat) : { yaw: 0, pitch: 0, roll: 0 };
-
-  // Controller: Gamepad
-  const left = getGamepadByHand("left");
-  const right = getGamepadByHand("right");
-
-  const rightStick = right?.axes
-    ? `stickR: x=${Number(right.axes[2] ?? 0).toFixed(2)} y=${Number(right.axes[3] ?? 0).toFixed(2)}`
-    : "stickR:-";
-
-  const lines = [
-    `[HMD]`,
-    `pos: x=${pos ? pos.x.toFixed(2) : "-"} y=${pos ? pos.y.toFixed(2) : "-"} z=${pos ? pos.z.toFixed(2) : "-"}`,
-    `ypr: yaw=${ypr.yaw.toFixed(1)} pitch=${ypr.pitch.toFixed(1)} roll=${ypr.roll.toFixed(1)}`,
-    ``,
-    `[LEFT] ${left ? left.id : "no gamepad"}`,
-    `axes: ${formatAxes(left?.axes)}`,
-    `btn : ${formatButtons(left?.buttons)}`,
-    ``,
-    `[RIGHT] ${right ? right.id : "no gamepad"}`,
-    `axes: ${formatAxes(right?.axes)}`,
-    rightStick,
-    `btn : ${formatButtons(right?.buttons)}`,
-  ];
-
-  el.vrDebugText.setAttribute(
-    "text",
-    `value: ${lines.join("\\n")}; color: #E5E7EB; width: 2.2; wrapCount: 40; baseline: top; align: left;`
-  );
-}
 
 // ------------------------------
 // VR: screen management
@@ -319,16 +200,16 @@ const vrState = {
 function setVrEnabled(on) {
   vrState.enabled = on;
   if (on) {
-    el.vrRoot?.classList.remove("vr-hidden");
-    el.uiRoot?.classList.add("ui-hidden");
+    el.vrRoot.classList.remove("vr-hidden");
+    el.uiRoot.classList.add("ui-hidden");
   } else {
-    el.vrRoot?.classList.add("vr-hidden");
-    el.uiRoot?.classList.remove("ui-hidden");
+    el.vrRoot.classList.add("vr-hidden");
+    el.uiRoot.classList.remove("ui-hidden");
   }
 }
 
-el.toggleVr?.addEventListener("click", () => setVrEnabled(!vrState.enabled));
-el.exitVr?.addEventListener("click", () => setVrEnabled(false));
+el.toggleVr.onclick = () => setVrEnabled(!vrState.enabled);
+el.exitVr.onclick = () => setVrEnabled(false);
 
 function layoutVrScreens() {
   const items = [...vrState.videoMap.values()];
@@ -432,8 +313,8 @@ const subscribed = new Set();
 // Helpers (2D UI)
 // ------------------------------
 function clearRemoteUi() {
-  el.buttonArea?.replaceChildren();
-  el.remoteArea?.replaceChildren();
+  el.buttonArea.replaceChildren();
+  el.remoteArea.replaceChildren();
   subscribed.clear();
 }
 
@@ -471,7 +352,7 @@ function ensureSubscribeButton(publication, meId) {
     btn.textContent = `✅ ${label}`;
   };
 
-  el.buttonArea?.appendChild(btn);
+  el.buttonArea.appendChild(btn);
 }
 
 async function subscribePublication(publication) {
@@ -505,7 +386,7 @@ async function subscribePublication(publication) {
     mediaEl.id = `media-${publication.id}`;
     stream.attach(mediaEl);
     mediaWrap.appendChild(mediaEl);
-    el.remoteArea?.appendChild(card);
+    el.remoteArea.appendChild(card);
 
     // 再生開始（保険）
     if (stream.track.kind === "video") {
@@ -550,12 +431,15 @@ function resToSize(key) {
 }
 
 function buildVideoConstraints() {
+  // UIが無い場合の保険
   const resKey = el.videoRes?.value ?? "hd";
   const fps = parseInt(el.videoFps?.value ?? "30", 10) || 30;
   const preferHigh = Boolean(el.videoHq?.checked);
 
   const { w, h } = resToSize(resKey);
 
+  // preferHigh: 厳しめ（ideal強め）
+  // not preferHigh: ゆるめ（minも緩く）
   if (preferHigh) {
     return {
       width: { ideal: w },
@@ -577,10 +461,13 @@ async function applyVideoQualityToLocalStream() {
 
   const constraints = buildVideoConstraints();
 
+  // まずは希望のconstraintsで試す
   try {
     await track.applyConstraints(constraints);
   } catch (e) {
     console.warn("applyConstraints failed (preferred). fallback to loose constraints:", e);
+
+    // フォールバック（かなり緩い）
     try {
       await track.applyConstraints({
         width: { ideal: 640 },
@@ -592,6 +479,7 @@ async function applyVideoQualityToLocalStream() {
     }
   }
 
+  // 実際に適用された設定をログ
   try {
     const s = track.getSettings?.();
     if (s) console.log("[video settings]", s);
@@ -647,11 +535,6 @@ el.join.onclick = async () => {
       if (el.pubVideo.checked && localVideoStream) {
         await applyVideoQualityToLocalStream();
         attachLocalPreview(localVideoStream);
-      } else {
-        // 映像OFFならプレビュー停止
-        el.localVideo.pause();
-        el.localVideo.removeAttribute("src");
-        el.localVideo.load();
       }
 
       if (el.pubAudio.checked && localAudio) {
@@ -740,19 +623,8 @@ el.join.onclick = async () => {
   }
 };
 
-// ------------------------------
-// VR Debug loop (requestAnimationFrame)
-// ------------------------------
-function vrDebugLoop() {
-  // VR画面を開いているときだけ更新（軽量だけど一応）
-  if (vrState.enabled) updateVrDebugText();
-  requestAnimationFrame(vrDebugLoop);
-}
-requestAnimationFrame(vrDebugLoop);
-
 // init
 setConnState("disconnected");
 setUiJoined(false);
 el.clearRemote.onclick = () => el.remoteArea.replaceChildren();
 setVrEnabled(false);
-applyVrHudOffset();

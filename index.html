@@ -2,74 +2,59 @@
 <html lang="ja">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>SkyWay + WebXR (Quest 2)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SkyWay P2P Room | Publish / Subscribe + WebXR</title>
     <link rel="stylesheet" href="style.css" />
-
-    <!-- A-Frame (WebXR) -->
-    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-
-    <!-- SkyWay Room SDK -->
-    <script src="https://cdn.jsdelivr.net/npm/@skyway-sdk/room/dist/skyway_room-latest.js"></script>
   </head>
 
   <body>
-    <!-- -------------------------
-         2D UI
-    -------------------------- -->
-    <div id="ui-root" class="ui-root">
-      <header class="topbar">
-        <div class="brand">
-          <div class="logo">NB</div>
-          <div>
-            <div class="title">Nagoya Boost 10000</div>
-            <div class="subtitle">SkyWay / P2P / WebXR HUD</div>
-          </div>
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo">☁️</div>
+        <div>
+          <div class="title">SkyWay P2P Room</div>
+          <div class="subtitle">Publish / Subscribe + WebXR (Quest 2)</div>
         </div>
+      </div>
 
-        <div class="status">
-          <span class="pill pill--off" id="conn-pill">未接続</span>
-          <span class="idline">ID: <span id="my-id">-</span></span>
-        </div>
-      </header>
+      <div class="status">
+        <span class="pill pill--off" id="conn-pill">未接続</span>
+        <span class="muted">ID:</span> <span class="mono" id="my-id">-</span>
+        <button id="toggle-vr" class="btn">VRモード</button>
+      </div>
+    </header>
 
-      <main class="container">
-        <section class="panel">
-          <h2>接続</h2>
+    <main class="container" id="ui-root">
+      <section class="card">
+        <h2 class="card-title">接続設定</h2>
 
-          <div class="row">
-            <label class="field">
-              <span class="label">Room名</span>
-              <input id="room-name" type="text" placeholder="例) test-room" />
-            </label>
+        <div class="grid">
+          <label class="field">
+            <span class="label">Room name</span>
+            <input id="room-name" type="text" placeholder="例: demo-room" />
+          </label>
 
-            <div class="btnrow">
-              <button id="join" class="btn primary">Join</button>
-              <button id="leave" class="btn" disabled>Leave</button>
-            </div>
-          </div>
-
-          <div class="row">
-            <div class="mode">
-              <div class="label">モード</div>
-              <label class="chip">
+          <div class="field">
+            <span class="label">モード</span>
+            <div class="segmented" role="tablist" aria-label="mode">
+              <label class="seg-item">
                 <input type="radio" name="mode" value="both" checked />
-                <span>Publish + Subscribe</span>
+                <span>両方</span>
               </label>
-              <label class="chip">
+              <label class="seg-item">
                 <input type="radio" name="mode" value="publish" />
                 <span>Publishのみ</span>
               </label>
-              <label class="chip">
+              <label class="seg-item">
                 <input type="radio" name="mode" value="subscribe" />
                 <span>Subscribeのみ</span>
               </label>
             </div>
           </div>
 
-          <div class="row split">
-            <div class="box">
-              <h3>Publish設定</h3>
+          <div class="field">
+            <span class="label">Publish設定（Publishのみ / 両方で有効）</span>
+            <div class="toggles">
               <label class="toggle">
                 <input id="pub-video" type="checkbox" checked />
                 <span>映像をPublish</span>
@@ -78,171 +63,159 @@
                 <input id="pub-audio" type="checkbox" checked />
                 <span>音声をPublish</span>
               </label>
-
-              <div class="quality">
-                <label class="field">
-                  <span class="label">解像度</span>
-                  <select id="video-res">
-                    <option value="qvga">320×240</option>
-                    <option value="vga">640×480</option>
-                    <option value="hd" selected>1280×720</option>
-                    <option value="fhd">1920×1080</option>
-                  </select>
-                </label>
-
-                <label class="field">
-                  <span class="label">FPS</span>
-                  <select id="video-fps">
-                    <option value="15">15</option>
-                    <option value="24">24</option>
-                    <option value="30" selected>30</option>
-                    <option value="60">60</option>
-                  </select>
-                </label>
-
-                <label class="toggle">
-                  <input id="video-hq" type="checkbox" />
-                  <span>高画質優先</span>
-                </label>
-              </div>
-
-              <p class="hint" id="pub-hint">
-                ※ Join前に映像/音声のPublish有無を選べます（映像ONなら画質も選べます）
-              </p>
-
-              <button id="mute-av" class="btn" disabled>映像/音声 OFF</button>
             </div>
-
-            <div class="box">
-              <h3>Subscribe設定</h3>
-              <label class="toggle">
-                <input id="auto-subscribe" type="checkbox" />
-                <span>自動Subscribe</span>
+            <div class="quality">
+              <label class="field">
+                <span class="label">解像度</span>
+                <select id="video-res">
+                  <option value="qvga">320×240</option>
+                  <option value="vga">640×480</option>
+                  <option value="hd" selected>1280×720</option>
+                  <option value="fhd">1920×1080</option>
+                </select>
               </label>
 
-              <div class="btnrow">
-                <button id="clear-remote" class="btn">表示クリア</button>
-                <button id="toggle-vr" class="btn ghost">VR表示</button>
-              </div>
+              <label class="field">
+                <span class="label">FPS</span>
+                <select id="video-fps">
+                  <option value="15">15</option>
+                  <option value="24">24</option>
+                  <option value="30" selected>30</option>
+                  <option value="60">60</option>
+                </select>
+              </label>
 
-              <p class="hint">
-                ※ Publicationsボタンから個別にSubscribeできます（映像はVRにも表示されます）
-              </p>
+              <label class="toggle">
+                <input id="video-hq" type="checkbox" />
+                <span>高画質優先（帯域が足りないとカクつく）</span>
+              </label>
             </div>
+
+            <div class="hint" id="pub-hint">※ モードが Subscribeのみ の場合は無効になります</div>
           </div>
-        </section>
 
-        <section class="panel">
-          <h2>Local</h2>
-          <div class="local-wrap">
-            <div class="overlay" id="local-overlay">Local Preview</div>
-            <video id="local-video" muted playsinline></video>
-          </div>
-          <p class="hint" id="local-note">Publishが有効なときだけ表示</p>
-        </section>
-
-        <section class="panel">
-          <h2>Publications</h2>
-          <div class="pub-area">
-            <div>
-              <div class="subhead">ボタン</div>
-              <div id="button-area" class="button-area"></div>
-            </div>
-            <div>
-              <div class="subhead">Remote</div>
-              <div id="remote-media-area" class="remote-area"></div>
-            </div>
-          </div>
-        </section>
-      </main>
-    </div>
-
-    <!-- VRでテクスチャ化するvideo達の置き場（見えないがDOMに存在させる） -->
-    <div id="media-hub" class="media-hub"></div>
-
-    <!-- -------------------------
-         VR (A-Frame)
-    -------------------------- -->
-    <div id="vr-root" class="vr-root vr-hidden">
-      <div class="vr-hud">
-        <div class="vr-title">VR HUD</div>
-
-        <div class="vr-controls">
-          <button id="exit-vr" class="btn small">2Dに戻る</button>
-
-          <label class="toggle small">
-            <input id="vr-debug-toggle" type="checkbox" />
-            <span>Debug表示</span>
-          </label>
-
-          <div class="sliders">
-            <div class="srow">
-              <span>X</span>
-              <input id="vr-x" type="range" min="-1.5" max="1.5" step="0.05" value="0" />
-              <span id="vr-xv">0</span>
-            </div>
-            <div class="srow">
-              <span>Y</span>
-              <input id="vr-y" type="range" min="-0.5" max="1.5" step="0.05" value="0.2" />
-              <span id="vr-yv">0.2</span>
-            </div>
-            <div class="srow">
-              <span>Z</span>
-              <input id="vr-z" type="range" min="0.5" max="4.0" step="0.1" value="1.6" />
-              <span id="vr-zv">1.6</span>
-            </div>
-            <div class="srow">
-              <span>Pitch</span>
-              <input id="vr-pitch" type="range" min="-30" max="30" step="1" value="-8" />
-              <span id="vr-pv">-8</span>
-            </div>
+          <div class="field actions">
+            <button id="join" class="btn primary">Join</button>
+            <button id="leave" class="btn" disabled>Leave</button>
           </div>
         </div>
-      </div>
+      </section>
 
+      <section class="two-col">
+        <section class="card">
+          <div class="card-head">
+            <h2 class="card-title">Local</h2>
+            <div class="small muted" id="local-note">Publishが有効なときだけ表示</div>
+          </div>
+
+          <div class="video-wrap">
+            <video id="local-video" muted playsinline webkit-playsinline></video>
+            <div class="video-overlay" id="local-overlay">Local Preview</div>
+          </div>
+
+          <div class="row">
+            <button id="mute-av" class="btn" disabled>映像/音声 OFF</button>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="card-head">
+            <h2 class="card-title">Remote</h2>
+            <div class="small muted" id="remote-note">PublishされたStreamを自動で取得</div>
+          </div>
+
+          <div class="remote-tools">
+            <label class="toggle">
+              <input id="auto-subscribe" type="checkbox" checked />
+              <span>自動Subscribe</span>
+            </label>
+            <button id="clear-remote" class="btn">Remote表示をクリア</button>
+          </div>
+
+          <div class="remote-grid" id="remote-media-area"></div>
+        </section>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <h2 class="card-title">Publications</h2>
+          <div class="small muted">手動Subscribe用ボタン（自動Subscribe OFFのとき便利）</div>
+        </div>
+        <div id="button-area" class="button-area"></div>
+      </section>
+    </main>
+
+    <!-- VRテクスチャ用 video を置く（display:none禁止、画面外に置いて生かす） -->
+    <div id="media-hub" class="media-hub"></div>
+
+    <!-- =========================
+         VR ROOT (A-Frame / WebXR)
+         ========================= -->
+    <div id="vr-root" class="vr-hidden">
       <a-scene
-        embedded
-        vr-mode-ui="enabled: true"
+        id="vr-scene"
+        background="color: #0b0f17"
         renderer="antialias: true; colorManagement: true"
+        vr-mode-ui="enabled: true"
+        embedded
       >
-        <a-assets></a-assets>
+        <!-- assetsは使っても良いが、videoはmedia-hub側に置く（display:none事故回避） -->
+        <a-assets id="vr-assets"></a-assets>
 
-        <!-- 簡易環境 -->
-        <a-sky color="#0b1220"></a-sky>
-        <a-plane rotation="-90 0 0" width="20" height="20" color="#0f172a"></a-plane>
+        <a-plane rotation="-90 0 0" width="50" height="50" color="#101827"></a-plane>
 
-        <!-- カメラ（HMDに追従） -->
-        <a-camera id="vr-camera" position="0 1.6 0">
-          <!-- 映像HUD（ここに video screens が追加される） -->
-          <a-entity id="vr-screens" position="0 0.2 -1.6" rotation="-8 0 0"></a-entity>
+        <!-- Camera rig -->
+        <a-entity id="camera-rig" position="0 1.6 0">
+          <a-camera id="vr-camera" wasd-controls-enabled="false">
+            <!-- ★頭に追従するHUDスクリーン群 -->
+            <a-entity id="vr-screens" position="0 -0.2 -1.6" rotation="-8 0 0"></a-entity>
+          </a-camera>
+        </a-entity>
 
-          <!-- Debug overlay (VR内) : 映像HUDの上に出す -->
-          <a-entity
-            id="vr-debug-anchor"
-            position="0 0.95 -1.6"
-            rotation="-8 0 0"
-            visible="false"
-          >
-            <a-plane
-              width="1.9"
-              height="0.75"
-              color="#0b1220"
-              material="opacity: 0.75"
-            ></a-plane>
-
-            <a-entity
-              id="vr-debug-text"
-              position="-0.92 0.32 0.01"
-              text="value: Debug OFF; color: #E5E7EB; width: 2.2; wrapCount: 40; baseline: top; align: left;"
-            ></a-entity>
-          </a-entity>
-        </a-camera>
-
-        <!-- 光 -->
-        <a-entity light="type: ambient; intensity: 0.7"></a-entity>
-        <a-entity light="type: directional; intensity: 0.6" position="1 2 1"></a-entity>
+        <a-entity light="type: ambient; intensity: 0.8"></a-entity>
+        <a-entity light="type: directional; intensity: 0.6" position="1 3 2"></a-entity>
       </a-scene>
+
+      <div class="vr-hud">
+        <div class="vr-hud-left">
+          <div class="vr-hud-title">VR表示（WebXR）</div>
+          <div class="vr-hud-sub">スクリーンは視点に追従。オフセット調整できます。</div>
+        </div>
+
+        <div class="vr-controls">
+          <label>
+            距離(Z)
+            <input id="vr-z" type="range" min="0.5" max="3.0" step="0.1" value="0.6" />
+            <span id="vr-zv">0.6</span>m
+          </label>
+          <label>
+            高さ(Y)
+            <input id="vr-y" type="range" min="-0.8" max="0.8" step="0.05" value="-0.2" />
+            <span id="vr-yv">-0.2</span>
+          </label>
+          <label>
+            横(X)
+            <input id="vr-x" type="range" min="-1.0" max="1.0" step="0.05" value="0.9" />
+            <span id="vr-xv">0.9</span>
+          </label>
+          <label>
+            角度(Pitch)
+            <input id="vr-pitch" type="range" min="-45" max="45" step="1" value="0" />
+            <span id="vr-pv">0</span>°
+          </label>
+        </div>
+
+        <div class="vr-hud-right">
+          <button id="exit-vr" class="btn primary">UIに戻る</button>
+        </div>
+      </div>
     </div>
+
+    <!-- SkyWay UMD（skyway_room が生える） -->
+    <script src="https://cdn.jsdelivr.net/npm/@skyway-sdk/room/dist/skyway_room-latest.js"></script>
+
+    <!-- A-Frame（WebXR対応） -->
+    <script src="https://aframe.io/releases/1.7.0/aframe.min.js"></script>
 
     <script src="script.js"></script>
   </body>
