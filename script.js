@@ -90,11 +90,20 @@ const el = {
   // media hub
   mediaHub: document.getElementById("media-hub"),
 
+  // Quality controls
   videoRes: document.getElementById("video-res"),
   videoFps: document.getElementById("video-fps"),
   videoHq: document.getElementById("video-hq"),
-
 };
+
+// --- media-hub が無ければ自動生成（落ちないようにする） ---
+if (!el.mediaHub) {
+  const hub = document.createElement("div");
+  hub.id = "media-hub";
+  hub.className = "media-hub";
+  document.body.appendChild(hub);
+  el.mediaHub = hub;
+}
 
 function currentMode() {
   return el.modeRadios.find((r) => r.checked)?.value ?? "both";
@@ -132,8 +141,12 @@ function updatePublishControls() {
   el.pubVideo.disabled = !publishEnabled || el.join.disabled;
   el.pubAudio.disabled = !publishEnabled || el.join.disabled;
 
+  if (el.videoRes) el.videoRes.disabled = !publishEnabled || el.join.disabled || !el.pubVideo.checked;
+  if (el.videoFps) el.videoFps.disabled = !publishEnabled || el.join.disabled || !el.pubVideo.checked;
+  if (el.videoHq) el.videoHq.disabled = !publishEnabled || el.join.disabled || !el.pubVideo.checked;
+
   el.pubHint.textContent = publishEnabled
-    ? "※ Join前に映像/音声のPublish有無を選べます"
+    ? "※ Join前に映像/音声のPublish有無を選べます（映像ONなら画質も選べます）"
     : "※ モードが Subscribeのみ のため無効です";
 
   el.localNote.textContent = publishEnabled
@@ -145,6 +158,7 @@ function updatePublishControls() {
 }
 
 el.modeRadios.forEach((r) => r.addEventListener("change", updatePublishControls));
+el.pubVideo?.addEventListener("change", updatePublishControls);
 updatePublishControls();
 
 // ------------------------------
@@ -220,6 +234,8 @@ function layoutVrScreens() {
 // ★重要：2Dで作ったvideoを「移動」しない。VR用videoを別で作って srcObject を共有。
 function addOrUpdateVideoToVR(publicationId, mediaEl2D) {
   if (!mediaEl2D) return;
+  if (!el.mediaHub) return;
+  if (!el.vrScreens) return;
   if (vrState.videoMap.has(publicationId)) return;
 
   const assetId = `vr-video-${publicationId}`;
@@ -375,7 +391,11 @@ async function subscribePublication(publication) {
     // 再生開始（保険）
     if (stream.track.kind === "video") {
       mediaEl.play().catch(() => {});
-      addOrUpdateVideoToVR(publication.id, mediaEl);
+      try {
+        addOrUpdateVideoToVR(publication.id, mediaEl);
+      } catch (e) {
+        console.warn("VR attach failed (non-fatal):", e);
+      }
     }
 
     const btn = document.getElementById(`subscribe-button-${publication.id}`);
@@ -392,30 +412,79 @@ function attachLocalPreview(videoStream) {
   el.localVideo.play().catch(() => {});
 }
 
+// ------------------------------
+// Publish quality (resolution / fps)
+// ------------------------------
 function resToSize(key) {
   switch (key) {
-    case "qvga": return { w: 320, h: 240 };
-    case "vga":  return { w: 640, h: 480 };
-    case "hd":   return { w: 1280, h: 720 };
-    case "fhd":  return { w: 1920, h: 1080 };
-    default:     return { w: 1280, h: 720 };
+    case "qvga":
+      return { w: 320, h: 240 };
+    case "vga":
+      return { w: 640, h: 480 };
+    case "hd":
+      return { w: 1280, h: 720 };
+    case "fhd":
+      return { w: 1920, h: 1080 };
+    default:
+      return { w: 1280, h: 720 };
   }
 }
 
 function buildVideoConstraints() {
-  const { w, h } = resToSize(el.videoRes.value);
-  const fps = parseInt(el.videoFps.value, 10) || 30;
+  // UIが無い場合の保険
+  const resKey = el.videoRes?.value ?? "hd";
+  const fps = parseInt(el.videoFps?.value ?? "30", 10) || 30;
+  const preferHigh = Boolean(el.videoHq?.checked);
 
-  // HQ優先：ideal を強めに。失敗しやすいので fallbackも後で入れる
-  const preferHigh = el.videoHq.checked;
+  const { w, h } = resToSize(resKey);
+
+  // preferHigh: 厳しめ（ideal強め）
+  // not preferHigh: ゆるめ（minも緩く）
+  if (preferHigh) {
+    return {
+      width: { ideal: w },
+      height: { ideal: h },
+      frameRate: { ideal: fps },
+    };
+  }
 
   return {
-    width:  preferHigh ? { ideal: w } : { ideal: w, min: 160 },
-    height: preferHigh ? { ideal: h } : { ideal: h, min: 120 },
-    frameRate: preferHigh ? { ideal: fps } : { ideal: fps, min: 10 },
+    width: { ideal: w, min: 160 },
+    height: { ideal: h, min: 120 },
+    frameRate: { ideal: fps, min: 10 },
   };
 }
 
+async function applyVideoQualityToLocalStream() {
+  const track = localVideoStream?.track;
+  if (!track || typeof track.applyConstraints !== "function") return;
+
+  const constraints = buildVideoConstraints();
+
+  // まずは希望のconstraintsで試す
+  try {
+    await track.applyConstraints(constraints);
+  } catch (e) {
+    console.warn("applyConstraints failed (preferred). fallback to loose constraints:", e);
+
+    // フォールバック（かなり緩い）
+    try {
+      await track.applyConstraints({
+        width: { ideal: 640 },
+        height: { ideal: 480 },
+        frameRate: { ideal: 24 },
+      });
+    } catch (e2) {
+      console.warn("applyConstraints fallback failed. continue with default:", e2);
+    }
+  }
+
+  // 実際に適用された設定をログ
+  try {
+    const s = track.getSettings?.();
+    if (s) console.log("[video settings]", s);
+  } catch (_) {}
+}
 
 // ------------------------------
 // Join / Leave
@@ -441,7 +510,6 @@ el.join.onclick = async () => {
 
     room = await SkyWayRoom.FindOrCreate(context, {
       name: roomName,
-      // type: "p2p" を明示してもOK
     });
 
     me = await room.join();
@@ -450,6 +518,9 @@ el.join.onclick = async () => {
 
     // publish
     if (publishEnabled) {
+      localAudio = null;
+      localVideoStream = null;
+
       if (el.pubAudio.checked && el.pubVideo.checked) {
         const av = await SkyWayStreamFactory.createMicrophoneAudioAndCameraStream();
         localAudio = av.audio;
@@ -460,7 +531,11 @@ el.join.onclick = async () => {
         localVideoStream = await SkyWayStreamFactory.createCameraVideoStream();
       }
 
-      if (el.pubVideo.checked) attachLocalPreview(localVideoStream);
+      // ★映像ONならここで画質を適用（publish前）
+      if (el.pubVideo.checked && localVideoStream) {
+        await applyVideoQualityToLocalStream();
+        attachLocalPreview(localVideoStream);
+      }
 
       if (el.pubAudio.checked && localAudio) {
         await me.publish(localAudio, { type: "p2p" });
@@ -513,7 +588,7 @@ el.join.onclick = async () => {
 
         // VRリセット
         [...vrState.videoMap.keys()].forEach(removeVideoFromVR);
-        el.mediaHub.replaceChildren();
+        if (el.mediaHub) el.mediaHub.replaceChildren();
 
         el.localVideo.pause();
         el.localVideo.removeAttribute("src");
