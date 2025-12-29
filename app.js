@@ -1,20 +1,52 @@
 const ROOM_NAME = "room"; // 固定
 const APP_ID = "441577ac-312a-4ffb-aad5-e540d3876971";
 const SECRET = "Bk9LR3lnRG483XKgUQAzCoP7tpLBhMs45muc9zDOoxE=";
-/* global skyway_room, THREE */
+/* global skyway_room, THREE, AFRAME */
 
 const { nowInSec, SkyWayAuthToken, SkyWayContext, SkyWayRoom } = skyway_room;
-
 
 const remoteVideoEl = document.getElementById("remoteVideo");
 const screenEl = document.getElementById("screen");
 const hudTextEl = document.getElementById("hudText");
-const cameraEl = document.getElementById("camera");
 
 // 表示したい仕様値（固定）
 const FRAME_W = 1080;
 const FRAME_H = 720;
 const FPS = 30;
+
+// ------------------------------
+// A-Frame カスタムコンポーネント
+// ------------------------------
+AFRAME.registerComponent('rotation-reader', {
+  init: function() {
+    this.euler = new THREE.Euler(0, 0, 0, "YXZ");
+    this.lastUpdate = 0;
+  },
+  
+  tick: function(time) {
+    // 100msごとに更新
+    if (time - this.lastUpdate < 100) return;
+    this.lastUpdate = time;
+
+    // VR/非VR両方で動作：object3Dから回転を取得
+    const rotation = this.el.object3D.rotation;
+    
+    // Eulerからラジアンを度に変換
+    const x = THREE.MathUtils.radToDeg(rotation.x);
+    const y = THREE.MathUtils.radToDeg(rotation.y);
+    const z = THREE.MathUtils.radToDeg(rotation.z);
+
+    // HUD更新
+    hudTextEl.setAttribute(
+      "value",
+      `Frame\n- ${FRAME_W}*${FRAME_H}\n- ${FPS}fps\n\nHMD rotation (deg)\n- x: ${this.format3(x)}\n- y: ${this.format3(y)}\n- z: ${this.format3(z)}`
+    );
+  },
+
+  format3: function(n) {
+    return (Math.round(n * 1000) / 1000).toFixed(3);
+  }
+});
 
 // ------------------------------
 // SkyWay Token
@@ -70,67 +102,9 @@ function attachVideoTextureToPlane(videoEl, planeEl) {
 }
 
 // ------------------------------
-// HUD update (camera rotation)
-// ------------------------------
-function format3(n) {
-  return (Math.round(n * 1000) / 1000).toFixed(3);
-}
-let lastHudUpdate = 0;
-function startHudLoop() {
-  const euler = new THREE.Euler(0, 0, 0, "YXZ");
-
-  const tick = (t) => {
-    if (t - lastHudUpdate > 100) {
-      lastHudUpdate = t;
-
-      // ★ VRならHMD、PCなら通常カメラ
-      const q = getViewQuaternion(cameraEl);
-      euler.setFromQuaternion(q);
-
-      const x = THREE.MathUtils.radToDeg(euler.x);
-      const y = THREE.MathUtils.radToDeg(euler.y);
-      const z = THREE.MathUtils.radToDeg(euler.z);
-
-      hudTextEl.setAttribute(
-        "value",
-        `Frame\n- ${FRAME_W}*${FRAME_H}\n- ${FPS}fps\n\nHMD rotation (deg)\n- x: ${format3(x)}\n- y: ${format3(y)}\n- z: ${format3(z)}`
-      );
-    }
-    requestAnimationFrame(tick);
-  };
-
-  requestAnimationFrame(tick);
-}
-
-
-
-function getViewQuaternion(cameraEl) {
-  const scene = cameraEl.sceneEl;
-  const q = new THREE.Quaternion();
-
-  // VR中：WebXRの実カメラ（HMDの姿勢）を取得
-  if (scene && scene.renderer && scene.renderer.xr && scene.renderer.xr.isPresenting) {
-    // WebXRセッション中のカメラを取得
-    const xrCamera = scene.renderer.xr.getCamera();
-    if (xrCamera) {
-      // XRカメラのワールドクォータニオンを取得
-      xrCamera.getWorldQuaternion(q);
-      return q;
-    }
-  }
-
-  // 非VR：通常のa-entity camera
-  cameraEl.object3D.getWorldQuaternion(q);
-  return q;
-}
-
-// ------------------------------
 // Main
 // ------------------------------
 async function start() {
-  // 先にHUD開始（映像来る前でも表示）
-  startHudLoop();
-
   // 自動再生対策
   remoteVideoEl.muted = true;
   remoteVideoEl.play().catch(() => {});
