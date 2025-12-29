@@ -217,7 +217,7 @@ const debugState = {
 };
 
 function updateDebugPanel() {
-  if (!debugState.enabled || !vrState.enabled) return;
+  if (!vrState.enabled) return;
   
   try {
     const scene = document.querySelector('#vr-scene');
@@ -234,31 +234,7 @@ function updateDebugPanel() {
       return;
     }
 
-    // Get camera position and rotation
-    const camera = document.querySelector('#vr-camera');
-    if (camera) {
-      const pos = camera.object3D.position;
-      const rot = camera.object3D.rotation;
-      
-      if (el.debugHeadsetPos) {
-        el.debugHeadsetPos.setAttribute('value', 
-          `Pos: ${pos.x.toFixed(2)}, ${pos.y.toFixed(2)}, ${pos.z.toFixed(2)}`
-        );
-      }
-      
-      if (el.debugHeadsetRot) {
-        const rotDeg = {
-          x: (rot.x * 180 / Math.PI).toFixed(1),
-          y: (rot.y * 180 / Math.PI).toFixed(1),
-          z: (rot.z * 180 / Math.PI).toFixed(1)
-        };
-        el.debugHeadsetRot.setAttribute('value', 
-          `Rot: ${rotDeg.x}, ${rotDeg.y}, ${rotDeg.z}`
-        );
-      }
-    }
-
-    // Get controller input
+    // Get controller input (always monitored for navigation)
     const inputSources = xrSession.inputSources;
     let leftController = null;
     let rightController = null;
@@ -268,84 +244,114 @@ function updateDebugPanel() {
       if (source.handedness === 'right') rightController = source;
     }
 
-    // Update left controller
+    // Controller-based navigation (always active)
     if (leftController && leftController.gamepad) {
       const gp = leftController.gamepad;
-      
-      // Check for trigger press (index 0) for previous stream
       const leftTrigger = gp.buttons[0]?.pressed || false;
       if (leftTrigger && !debugState.prevLeftTrigger) {
         switchToPrevStream();
       }
       debugState.prevLeftTrigger = leftTrigger;
-      
-      // Buttons
-      const buttonStates = gp.buttons.map((btn, i) => {
-        if (btn.pressed) return `${i}:P`;
-        if (btn.touched) return `${i}:T`;
-        if (btn.value > 0.1) return `${i}:${btn.value.toFixed(2)}`;
-        return null;
-      }).filter(Boolean).join(' ');
-      
-      if (el.debugLeftButtons) {
-        el.debugLeftButtons.setAttribute('value', 
-          `Btns: ${buttonStates || 'None'}`
-        );
-      }
-      
-      // Axes (joystick)
-      const axesStr = gp.axes.map((v, i) => `[${i}]:${v.toFixed(2)}`).join(' ');
-      if (el.debugLeftAxes) {
-        el.debugLeftAxes.setAttribute('value', 
-          `Axes: ${axesStr || 'None'}`
-        );
-      }
     } else {
       debugState.prevLeftTrigger = false;
-      if (el.debugLeftButtons) el.debugLeftButtons.setAttribute('value', 'Btns: N/A');
-      if (el.debugLeftAxes) el.debugLeftAxes.setAttribute('value', 'Axes: N/A');
     }
 
-    // Update right controller
     if (rightController && rightController.gamepad) {
       const gp = rightController.gamepad;
-      
-      // Check for trigger press (index 0) for next stream
       const rightTrigger = gp.buttons[0]?.pressed || false;
       if (rightTrigger && !debugState.prevRightTrigger) {
         switchToNextStream();
       }
       debugState.prevRightTrigger = rightTrigger;
-      
-      // Buttons
-      const buttonStates = gp.buttons.map((btn, i) => {
-        if (btn.pressed) return `${i}:P`;
-        if (btn.touched) return `${i}:T`;
-        if (btn.value > 0.1) return `${i}:${btn.value.toFixed(2)}`;
-        return null;
-      }).filter(Boolean).join(' ');
-      
-      if (el.debugRightButtons) {
-        el.debugRightButtons.setAttribute('value', 
-          `Btns: ${buttonStates || 'None'}`
-        );
-      }
-      
-      // Axes
-      const axesStr = gp.axes.map((v, i) => `[${i}]:${v.toFixed(2)}`).join(' ');
-      if (el.debugRightAxes) {
-        el.debugRightAxes.setAttribute('value', 
-          `Axes: ${axesStr || 'None'}`
-        );
-      }
     } else {
       debugState.prevRightTrigger = false;
-      if (el.debugRightButtons) el.debugRightButtons.setAttribute('value', 'Btns: N/A');
-      if (el.debugRightAxes) el.debugRightAxes.setAttribute('value', 'Axes: N/A');
     }
 
-    // Update stream info
-    updateDebugStreamInfo();
+    // Debug info display (only if debug mode enabled)
+    if (debugState.enabled) {
+      // Get camera position and rotation
+      const camera = document.querySelector('#vr-camera');
+      if (camera) {
+        const pos = camera.object3D.position;
+        const rot = camera.object3D.rotation;
+        
+        if (el.debugHeadsetPos) {
+          el.debugHeadsetPos.setAttribute('value', 
+            `Pos: ${pos.x.toFixed(2)}, ${pos.y.toFixed(2)}, ${pos.z.toFixed(2)}`
+          );
+        }
+        
+        if (el.debugHeadsetRot) {
+          const rotDeg = {
+            x: (rot.x * 180 / Math.PI).toFixed(1),
+            y: (rot.y * 180 / Math.PI).toFixed(1),
+            z: (rot.z * 180 / Math.PI).toFixed(1)
+          };
+          el.debugHeadsetRot.setAttribute('value', 
+            `Rot: ${rotDeg.x}, ${rotDeg.y}, ${rotDeg.z}`
+          );
+        }
+      }
+
+      // Update left controller debug info
+      if (leftController && leftController.gamepad) {
+        const gp = leftController.gamepad;
+        
+        const buttonStates = gp.buttons.map((btn, i) => {
+          if (btn.pressed) return `${i}:P`;
+          if (btn.touched) return `${i}:T`;
+          if (btn.value > 0.1) return `${i}:${btn.value.toFixed(2)}`;
+          return null;
+        }).filter(Boolean).join(' ');
+        
+        if (el.debugLeftButtons) {
+          el.debugLeftButtons.setAttribute('value', 
+            `Btns: ${buttonStates || 'None'}`
+          );
+        }
+        
+        const axesStr = gp.axes.map((v, i) => `[${i}]:${v.toFixed(2)}`).join(' ');
+        if (el.debugLeftAxes) {
+          el.debugLeftAxes.setAttribute('value', 
+            `Axes: ${axesStr || 'None'}`
+          );
+        }
+      } else {
+        if (el.debugLeftButtons) el.debugLeftButtons.setAttribute('value', 'Btns: N/A');
+        if (el.debugLeftAxes) el.debugLeftAxes.setAttribute('value', 'Axes: N/A');
+      }
+
+      // Update right controller debug info
+      if (rightController && rightController.gamepad) {
+        const gp = rightController.gamepad;
+        
+        const buttonStates = gp.buttons.map((btn, i) => {
+          if (btn.pressed) return `${i}:P`;
+          if (btn.touched) return `${i}:T`;
+          if (btn.value > 0.1) return `${i}:${btn.value.toFixed(2)}`;
+          return null;
+        }).filter(Boolean).join(' ');
+        
+        if (el.debugRightButtons) {
+          el.debugRightButtons.setAttribute('value', 
+            `Btns: ${buttonStates || 'None'}`
+          );
+        }
+        
+        const axesStr = gp.axes.map((v, i) => `[${i}]:${v.toFixed(2)}`).join(' ');
+        if (el.debugRightAxes) {
+          el.debugRightAxes.setAttribute('value', 
+            `Axes: ${axesStr || 'None'}`
+          );
+        }
+      } else {
+        if (el.debugRightButtons) el.debugRightButtons.setAttribute('value', 'Btns: N/A');
+        if (el.debugRightAxes) el.debugRightAxes.setAttribute('value', 'Axes: N/A');
+      }
+
+      // Update stream info
+      updateDebugStreamInfo();
+    }
 
   } catch (e) {
     console.warn('Debug panel update error:', e);
@@ -394,7 +400,7 @@ function updateDebugStreamInfo() {
 }
 
 function startDebugUpdate() {
-  if (debugState.enabled && !debugState.animationId) {
+  if (vrState.enabled && !debugState.animationId) {
     debugState.animationId = requestAnimationFrame(updateDebugPanel);
   }
 }
@@ -411,12 +417,6 @@ function setDebugEnabled(enabled) {
   
   if (el.debugPanel) {
     el.debugPanel.setAttribute('visible', enabled ? 'true' : 'false');
-  }
-  
-  if (enabled && vrState.enabled) {
-    startDebugUpdate();
-  } else {
-    stopDebugUpdate();
   }
 }
 
@@ -436,16 +436,22 @@ function setVrEnabled(on) {
     el.vrRoot.classList.remove("vr-hidden");
     el.uiRoot.classList.add("ui-hidden");
     
-    // Enable debug if checkbox is checked
+    // Enable debug panel if checkbox is checked
     if (el.vrDebug?.checked) {
       setDebugEnabled(true);
     }
+    
+    // Always start controller monitoring for navigation
+    startDebugUpdate();
   } else {
     el.vrRoot.classList.add("vr-hidden");
     el.uiRoot.classList.remove("ui-hidden");
     
     // Disable debug when exiting VR
     setDebugEnabled(false);
+    
+    // Stop controller monitoring
+    stopDebugUpdate();
   }
 }
 
