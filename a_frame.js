@@ -1,7 +1,7 @@
 /**
  * a_frame.js
  * A-Frameカスタムコンポーネントとコントローラー管理
- * モード切り替え機能を含む
+ * モード切り替え機能を含む（Oculus Touchのみ対応）
  */
 
 /* global AFRAME, THREE */
@@ -18,24 +18,18 @@ window.controllerStates = {
   left: {
     trigger: 0,
     grip: 0,
-    buttonA: 0, // X button for left Oculus
-    buttonB: 0, // Y button for left Oculus
-    menu: 0,    // Vive menu button
+    buttonX: 0,
+    buttonY: 0,
     thumbstick: { x: 0, y: 0 },
-    trackpad: { x: 0, y: 0 }, // Vive trackpad
-    detected: false,
-    type: null // 'oculus' or 'vive'
+    detected: false
   },
   right: {
     trigger: 0,
     grip: 0,
-    buttonA: 0, // A button for right Oculus
-    buttonB: 0, // B button for right Oculus
-    menu: 0,    // Vive menu button
+    buttonA: 0,
+    buttonB: 0,
     thumbstick: { x: 0, y: 0 },
-    trackpad: { x: 0, y: 0 }, // Vive trackpad
-    detected: false,
-    type: null // 'oculus' or 'vive'
+    detected: false
   }
 };
 
@@ -85,41 +79,31 @@ AFRAME.registerComponent('rotation-reader', {
 
 /**
  * A-Frameコンポーネント: controller-listener
- * コントローラーのボタンとジョイスティック入力を監視
+ * コントローラーのボタンとジョイスティック入力を監視（Oculus Touchのみ）
  * モード切り替え機能を含む
  */
 AFRAME.registerComponent('controller-listener', {
   schema: {
-    hand: { type: 'string', default: 'left' },
-    type: { type: 'string', default: 'oculus' } // 'oculus' or 'vive'
+    hand: { type: 'string', default: 'left' }
   },
 
   init: function() {
     const hand = this.data.hand;
-    const type = this.data.type;
     const state = window.controllerStates[hand];
 
     // コントローラーが接続されたらdetectedをtrueに
     this.el.addEventListener('controllerconnected', () => {
       state.detected = true;
-      state.type = type;
-      console.log(`[CONTROLLER] ${type} ${hand} controller connected`);
+      console.log(`[CONTROLLER] Oculus Touch ${hand} controller connected`);
     });
 
     this.el.addEventListener('controllerdisconnected', () => {
       state.detected = false;
-      console.log(`[CONTROLLER] ${type} ${hand} controller disconnected`);
+      console.log(`[CONTROLLER] Oculus Touch ${hand} controller disconnected`);
     });
 
     // Oculus Touch イベント
-    if (type === 'oculus') {
-      this.setupOculusEvents(state, hand);
-    }
-
-    // Vive コントローラー イベント
-    if (type === 'vive') {
-      this.setupViveEvents(state, hand);
-    }
+    this.setupOculusEvents(state, hand);
   },
 
   /**
@@ -134,10 +118,12 @@ AFRAME.registerComponent('controller-listener', {
     this.el.addEventListener('gripdown', () => { state.grip = 1; });
     this.el.addEventListener('gripup', () => { state.grip = 0; });
 
-    // A/X button（左コントローラーのXボタンでモード切り替え）
     if (hand === 'left') {
+      // 左コントローラー: X, Y ボタン
+      
+      // Xボタン（モード切り替え）
       this.el.addEventListener('xbuttondown', () => {
-        state.buttonA = 1;
+        state.buttonX = 1;
         // エッジ検出：前回がfalseで今回trueならトグル
         if (!modeToggleState.xButtonPressed) {
           modeToggleState.xButtonPressed = true;
@@ -145,65 +131,30 @@ AFRAME.registerComponent('controller-listener', {
         }
       });
       this.el.addEventListener('xbuttonup', () => {
-        state.buttonA = 0;
+        state.buttonX = 0;
         modeToggleState.xButtonPressed = false;
       });
+
+      // Yボタン
+      this.el.addEventListener('ybuttondown', () => { state.buttonY = 1; });
+      this.el.addEventListener('ybuttonup', () => { state.buttonY = 0; });
+
     } else {
-      // 右コントローラーのAボタン（モード切り替えなし）
+      // 右コントローラー: A, B ボタン
+      
+      // Aボタン
       this.el.addEventListener('abuttondown', () => { state.buttonA = 1; });
       this.el.addEventListener('abuttonup', () => { state.buttonA = 0; });
-    }
 
-    // B/Y button
-    this.el.addEventListener('bbuttondown', () => { state.buttonB = 1; });
-    this.el.addEventListener('bbuttonup', () => { state.buttonB = 0; });
-    this.el.addEventListener('ybuttondown', () => { state.buttonB = 1; });
-    this.el.addEventListener('ybuttonup', () => { state.buttonB = 0; });
+      // Bボタン
+      this.el.addEventListener('bbuttondown', () => { state.buttonB = 1; });
+      this.el.addEventListener('bbuttonup', () => { state.buttonB = 0; });
+    }
 
     // Thumbstick
     this.el.addEventListener('thumbstickmoved', (evt) => {
       state.thumbstick.x = evt.detail.x;
       state.thumbstick.y = evt.detail.y;
-    });
-  },
-
-  /**
-   * Viveコントローラーのイベントをセットアップ
-   */
-  setupViveEvents: function(state, hand) {
-    // Trigger
-    this.el.addEventListener('triggerdown', () => { state.trigger = 1; });
-    this.el.addEventListener('triggerup', () => { state.trigger = 0; });
-
-    // Grip
-    this.el.addEventListener('gripdown', () => { state.grip = 1; });
-    this.el.addEventListener('gripup', () => { state.grip = 0; });
-
-    // Menu button（左コントローラーのMenuボタンでモード切り替え）
-    if (hand === 'left') {
-      this.el.addEventListener('menudown', () => {
-        state.menu = 1;
-        if (!modeToggleState.xButtonPressed) {
-          modeToggleState.xButtonPressed = true;
-          this.handleModeToggle();
-        }
-      });
-      this.el.addEventListener('menuup', () => {
-        state.menu = 0;
-        modeToggleState.xButtonPressed = false;
-      });
-    } else {
-      this.el.addEventListener('menudown', () => { state.menu = 1; });
-      this.el.addEventListener('menuup', () => { state.menu = 0; });
-    }
-
-    // Trackpad
-    this.el.addEventListener('trackpaddown', () => { state.buttonA = 1; });
-    this.el.addEventListener('trackpadup', () => { state.buttonA = 0; });
-    
-    this.el.addEventListener('trackpadmoved', (evt) => {
-      state.trackpad.x = evt.detail.x;
-      state.trackpad.y = evt.detail.y;
     });
   },
 
@@ -252,7 +203,9 @@ AFRAME.registerComponent('controller-monitor', {
     // Right Controller
     text += "Right\n";
     if (rightState.detected) {
-      text += this.formatControllerState(rightState);
+      text += `Trigger:${rightState.trigger} Grip:${rightState.grip} `;
+      text += `A:${rightState.buttonA} B:${rightState.buttonB}\n`;
+      text += `Joy: (x:${rightState.thumbstick.x.toFixed(2)}, y:${rightState.thumbstick.y.toFixed(2)})\n`;
     } else {
       text += "Not detected\n\n";
     }
@@ -262,32 +215,40 @@ AFRAME.registerComponent('controller-monitor', {
     // Left Controller
     text += "Left\n";
     if (leftState.detected) {
-      text += this.formatControllerState(leftState);
+      text += `Trigger:${leftState.trigger} Grip:${leftState.grip} `;
+      text += `X:${leftState.buttonX} Y:${leftState.buttonY}\n`;
+      text += `Joy: (x:${leftState.thumbstick.x.toFixed(2)}, y:${leftState.thumbstick.y.toFixed(2)})`;
     } else {
       text += "Not detected";
     }
 
     return text;
-  },
+  }
+});
 
-  /**
-   * 個別のコントローラー状態をフォーマット
-   */
-  formatControllerState: function(state) {
-    const type = state.type || 'unknown';
-    let text = "";
-    
-    if (type === 'oculus') {
-      text += `Trigger:${state.trigger} Grip:${state.grip} `;
-      text += `A/X:${state.buttonA} B/Y:${state.buttonB}\n`;
-      text += `Joy: (x:${state.thumbstick.x.toFixed(2)}, y:${state.thumbstick.y.toFixed(2)})\n`;
-    } else if (type === 'vive') {
-      text += `Trigger:${state.trigger} Grip:${state.grip} `;
-      text += `Menu:${state.menu} Pad:${state.buttonA}\n`;
-      text += `Trackpad: (x:${state.trackpad.x.toFixed(2)}, y:${state.trackpad.y.toFixed(2)})\n`;
-    }
-    
-    return text;
+/**
+ * A-Frameコンポーネント: mode-display
+ * 現在のモードを表示
+ */
+AFRAME.registerComponent('mode-display', {
+  init: function() {
+    this.lastUpdate = 0;
+    this.modeTextEl = document.getElementById("modeText");
+  },
+  
+  tick: function(time) {
+    // 100msごとに更新
+    if (time - this.lastUpdate < 100) return;
+    this.lastUpdate = time;
+
+    if (!this.modeTextEl) return;
+
+    // 現在のモードを取得
+    const currentMode = window.appGetCurrentMode ? window.appGetCurrentMode() : 'unknown';
+    const modeDisplay = currentMode.toUpperCase();
+
+    // モードテキストを更新
+    this.modeTextEl.setAttribute("value", `MODE: ${modeDisplay}`);
   }
 });
 
@@ -321,12 +282,13 @@ function setupKeyboardModeToggle() {
 
 /**
  * A-Frameコンポーネントの初期化
- * カメラにcontroller-monitorをアタッチ
+ * カメラにcontroller-monitorとmode-displayをアタッチ
  */
 function initializeAFrameComponents() {
   const camera = document.getElementById('camera');
   if (camera) {
     camera.setAttribute('controller-monitor', '');
+    camera.setAttribute('mode-display', '');
   }
   
   // キーボードのモード切り替えを設定

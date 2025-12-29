@@ -43,6 +43,15 @@
                 align="left">
         </a-text>
 
+        <!-- モード表示（中央） -->
+        <a-text id="modeText"
+                value="MODE: CONTROL"
+                position="0 0.4 -2"
+                width="2.5"
+                color="#00FF00"
+                align="center">
+        </a-text>
+
         <!-- コントローラー情報表示（左側） -->
         <a-text id="controllerInfo"
                 value="Controllers\nInitializing..."
@@ -53,24 +62,14 @@
         </a-text>
       </a-entity>
 
-      <!-- 6DoF コントローラー: HTC Vive -->
-      <a-entity id="leftVive" 
-                vive-controls="hand: left" 
-                controller-listener="hand: left; type: vive">
-      </a-entity>
-      <a-entity id="rightVive" 
-                vive-controls="hand: right" 
-                controller-listener="hand: right; type: vive">
-      </a-entity>
-
       <!-- 6DoF コントローラー: Oculus Touch -->
       <a-entity id="leftOculus" 
                 oculus-touch-controls="hand: left" 
-                controller-listener="hand: left; type: oculus">
+                controller-listener="hand: left">
       </a-entity>
       <a-entity id="rightOculus" 
                 oculus-touch-controls="hand: right" 
-                controller-listener="hand: right; type: oculus">
+                controller-listener="hand: right">
       </a-entity>
     </a-entity>
 
