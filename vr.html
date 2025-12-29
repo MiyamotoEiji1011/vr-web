@@ -3,13 +3,21 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>VR Video Streaming with SkyWay</title>
 
+  <!-- A-Frame -->
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
 
-  <!-- ★追加：コントローラー表示用 -->
+  <!-- A-Frame Extras (コントローラー表示用) -->
   <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
 
+  <!-- SkyWay SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@skyway-sdk/room/dist/skyway_room-latest.js"></script>
+
+  <!-- アプリケーションスクリプト（順番重要） -->
+  <script defer src="./skyway.js"></script>
+  <script defer src="./a_frame.js"></script>
+  <script defer src="./script.js"></script>
 </head>
 
 <body>
@@ -45,21 +53,22 @@
         </a-text>
       </a-entity>
 
-      <!-- 6DoF コントローラー: HTC Vive -->
-      <a-entity id="leftVive" vive-controls="hand: left" controller-listener="hand: left; type: vive"></a-entity>
-      <a-entity id="rightVive" vive-controls="hand: right" controller-listener="hand: right; type: vive"></a-entity>
-
       <!-- 6DoF コントローラー: Oculus Touch -->
-      <a-entity id="leftOculus" oculus-touch-controls="hand: left" controller-listener="hand: left; type: oculus"></a-entity>
-      <a-entity id="rightOculus" oculus-touch-controls="hand: right" controller-listener="hand: right; type: oculus"></a-entity>
+      <a-entity id="leftOculus" 
+                oculus-touch-controls="hand: left" 
+                controller-listener="hand: left; type: oculus">
+      </a-entity>
+      <a-entity id="rightOculus" 
+                oculus-touch-controls="hand: right" 
+                controller-listener="hand: right; type: oculus">
+      </a-entity>
     </a-entity>
 
     <!-- 環境 -->
     <a-sky color="#111"></a-sky>
   </a-scene>
 
-  <video id="remoteVideo" autoplay playsinline webkit-playsinline muted></video>
-
-  <script src="./app.js"></script>
+  <!-- リモートビデオ要素（画面外に配置） -->
+  <video id="remoteVideo" autoplay playsinline webkit-playsinline muted style="position: fixed; left: -9999px;"></video>
 </body>
 </html>
