@@ -106,16 +106,20 @@ function startHudLoop() {
 
 function getViewQuaternion(cameraEl) {
   const scene = cameraEl.sceneEl;
+  const q = new THREE.Quaternion();
 
-  // VR中：WebXRの実カメラ（HMDの姿勢）
-  if (scene && scene.is("vr-mode") && scene.camera) {
-    const q = new THREE.Quaternion();
-    scene.camera.getWorldQuaternion(q);
-    return q;
+  // VR中：WebXRの実カメラ（HMDの姿勢）を取得
+  if (scene && scene.renderer && scene.renderer.xr && scene.renderer.xr.isPresenting) {
+    // WebXRセッション中のカメラを取得
+    const xrCamera = scene.renderer.xr.getCamera();
+    if (xrCamera) {
+      // XRカメラのワールドクォータニオンを取得
+      xrCamera.getWorldQuaternion(q);
+      return q;
+    }
   }
 
   // 非VR：通常のa-entity camera
-  const q = new THREE.Quaternion();
   cameraEl.object3D.getWorldQuaternion(q);
   return q;
 }
