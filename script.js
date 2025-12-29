@@ -1,4 +1,4 @@
-/* global skyway_room, AFRAME */
+/* global skyway_room */
 
 const {
   nowInSec,
@@ -75,12 +75,9 @@ const el = {
   uiRoot: document.getElementById("ui-root"),
   vrRoot: document.getElementById("vr-root"),
   exitVr: document.getElementById("exit-vr"),
-  vrHud: document.getElementById("vr-hud"),
-  vrAssets: document.getElementById("vr-assets"),
   vrScreens: document.getElementById("vr-screens"),
-  vrScene: document.getElementById("vr-scene"),
 
-    // VR sliders
+  // VR sliders
   vrX: document.getElementById("vr-x"),
   vrY: document.getElementById("vr-y"),
   vrZ: document.getElementById("vr-z"),
@@ -89,6 +86,9 @@ const el = {
   vrYv: document.getElementById("vr-yv"),
   vrZv: document.getElementById("vr-zv"),
   vrPv: document.getElementById("vr-pv"),
+
+  // media hub
+  mediaHub: document.getElementById("media-hub"),
 };
 
 function currentMode() {
@@ -143,119 +143,41 @@ el.modeRadios.forEach((r) => r.addEventListener("change", updatePublishControls)
 updatePublishControls();
 
 // ------------------------------
-// VR: video screen management
+// VR: HUD offset sliders
+// ------------------------------
+function applyVrHudOffset() {
+  const x = parseFloat(el.vrX.value);
+  const y = parseFloat(el.vrY.value);
+  const z = parseFloat(el.vrZ.value);
+  const pitch = parseFloat(el.vrPitch.value);
+
+  el.vrXv.textContent = x.toFixed(2).replace(/\.00$/, "");
+  el.vrYv.textContent = y.toFixed(2).replace(/\.00$/, "");
+  el.vrZv.textContent = z.toFixed(1);
+  el.vrPv.textContent = pitch.toFixed(0);
+
+  // 前方は -Z
+  el.vrScreens.setAttribute("position", `${x} ${y} ${-z}`);
+  el.vrScreens.setAttribute("rotation", `${pitch} 0 0`);
+}
+
+["input", "change"].forEach((evt) => {
+  el.vrX.addEventListener(evt, applyVrHudOffset);
+  el.vrY.addEventListener(evt, applyVrHudOffset);
+  el.vrZ.addEventListener(evt, applyVrHudOffset);
+  el.vrPitch.addEventListener(evt, applyVrHudOffset);
+});
+applyVrHudOffset();
+
+// ------------------------------
+// VR: screen management
 // ------------------------------
 const vrState = {
   enabled: false,
-  // publication.id -> { videoElId, entityId }
+  // publication.id -> { videoElId, groupId }
   videoMap: new Map(),
 };
 
-// VRの画面配置（横に並べる。増えたら2段）
-function layoutVrScreens() {
-  const items = [...vrState.videoMap.values()];
-  const perRow = 2;
-  const spacingX = 1.8;
-  const spacingY = 1.1;
-
-  items.forEach((item, idx) => {
-    const row = Math.floor(idx / perRow);
-    const col = idx % perRow;
-
-    const x = (col - 0.5) * spacingX; // -0.9, +0.9
-    const y = 0.7 - row * spacingY;   // 少し下に積む
-    const z = 0;
-
-    const ent = document.getElementById(item.entityId);
-    if (!ent) return;
-    ent.setAttribute("position", `${x} ${y} ${z}`);
-  });
-}
-
-// SkyWayのリモートvideo要素をVR空間に貼る
-function addOrUpdateVideoToVR(publicationId, videoEl) {
-  if (!videoEl) return;
-
-  // A-Frameの a-video は <a-assets> 内の video#id を参照するのが安定
-  const assetId = `vr-video-${publicationId}`;
-  let assetVideo = document.getElementById(assetId);
-
-  if (!assetVideo) {
-    assetVideo = document.createElement("video");
-    assetVideo.id = assetId;
-    assetVideo.setAttribute("playsinline", "");
-    assetVideo.setAttribute("webkit-playsinline", "");
-    assetVideo.crossOrigin = "anonymous"; // CDNsなど経由でも安全側に
-    assetVideo.autoplay = true;
-    assetVideo.muted = false; // リモート音声を使いたい場合
-    assetVideo.loop = true;
-
-    // SkyWayの stream.attach(videoEl) した video から “同じ再生ソース” はコピーできないので、
-    // ここでは「VRは同じ videoEl をそのまま使う」戦略にする：
-    // ただし a-video は selector で video 要素を参照できるので、assetVideoに“中身を移す”のではなく、
-    // videoEl 自体を assets に移動させる方が確実。
-    //
-    // → なので videoEl を assets に移動し、id を付けて a-video に貼る。
-  }
-
-  // すでにVR管理しているなら何もしない
-  if (vrState.videoMap.has(publicationId)) return;
-
-  // 2D表示用に作った videoEl を assets に移動（VRのテクスチャ元にする）
-  // NOTE: 2D側でも同じ video を見たい場合は clone ではなく “同じ要素” を使う必要があるため、
-  // ここでは 2Dカード側から video を外して VRへ移す（2Dはサムネだけ/またはVR中心運用）。
-  // 2DとVR両方に出したい場合は「2Dは canvas に描画」など別案が必要。
-  videoEl.id = assetId;
-  videoEl.setAttribute("playsinline", "");
-  videoEl.setAttribute("webkit-playsinline", "");
-
-  // assetsへ移動
-  el.vrAssets.appendChild(videoEl);
-
-  // a-video entity 作成
-  const entityId = `vr-screen-${publicationId}`;
-  const screen = document.createElement("a-video");
-  screen.setAttribute("id", entityId);
-  screen.setAttribute("src", `#${assetId}`);
-  screen.setAttribute("width", "1.6");
-  screen.setAttribute("height", "0.9");
-  screen.setAttribute("rotation", "0 0 0");
-
-  // 縁取り（見やすく）
-  const frame = document.createElement("a-plane");
-  frame.setAttribute("width", "1.66");
-  frame.setAttribute("height", "0.96");
-  frame.setAttribute("position", "0 0 -0.01");
-  frame.setAttribute("color", "#0f172a");
-  frame.setAttribute("material", "opacity: 0.85");
-
-  const group = document.createElement("a-entity");
-  group.appendChild(frame);
-  group.appendChild(screen);
-
-  el.vrScreens.appendChild(group);
-
-  vrState.videoMap.set(publicationId, { videoElId: assetId, entityId });
-  layoutVrScreens();
-}
-
-function removeVideoFromVR(publicationId) {
-  const info = vrState.videoMap.get(publicationId);
-  if (!info) return;
-
-  // entity削除
-  const ent = document.getElementById(info.entityId);
-  ent?.parentElement?.remove(); // groupごと消す
-
-  // assets内のvideo削除
-  const v = document.getElementById(info.videoElId);
-  v?.remove();
-
-  vrState.videoMap.delete(publicationId);
-  layoutVrScreens();
-}
-
-// VR UI toggle
 function setVrEnabled(on) {
   vrState.enabled = on;
   if (on) {
@@ -267,48 +189,91 @@ function setVrEnabled(on) {
   }
 }
 
-el.toggleVr.onclick = () => setVrEnabled(true);
-el.exitVr.onclick = () => {
-  // A-FrameのVRセッションがアクティブな場合は終了させる
-  if (el.vrScene.is("vr-mode")) {
-    el.vrScene.exitVR();
-  }
-  setVrEnabled(false);
-};
+el.toggleVr.onclick = () => setVrEnabled(!vrState.enabled);
+el.exitVr.onclick = () => setVrEnabled(false);
 
-function applyVrHudOffset() {
-  // vr-root が見えていない場合は何もしない
-  if (el.vrRoot.classList.contains("vr-hidden")) {
-    return;
-  }
+function layoutVrScreens() {
+  const items = [...vrState.videoMap.values()];
+  const perRow = 2;
+  const spacingX = 1.8;
+  const spacingY = 1.1;
 
-  // a-entity#vr-screens は a-camera の子。position/rotation を変えると「目の前HUD」が変わる。
-  const x = parseFloat(el.vrX.value);
-  const y = parseFloat(el.vrY.value);
-  const z = parseFloat(el.vrZ.value);
-  const pitch = parseFloat(el.vrPitch.value);
+  items.forEach((item, idx) => {
+    const row = Math.floor(idx / perRow);
+    const col = idx % perRow;
 
-  el.vrXv.textContent = x.toFixed(2).replace(/\.00$/, "");
-  el.vrYv.textContent = y.toFixed(2).replace(/\.00$/, "");
-  el.vrZv.textContent = z.toFixed(1);
-  el.vrPv.textContent = pitch.toFixed(0);
+    const x = (col - 0.5) * spacingX;
+    const y = 0.2 - row * spacingY;
+    const z = 0;
 
-  // zは「前方」なので A-Frame ではマイナス方向
-  el.vrScreens.setAttribute("position", `${x} ${y} ${-z}`);
-  el.vrScreens.setAttribute("rotation", `${pitch} 0 0`);
+    const group = document.getElementById(item.groupId);
+    if (!group) return;
+    group.setAttribute("position", `${x} ${y} ${z}`);
+  });
 }
 
-// A-FrameのVRモード出入りを監視してUI状態を更新
-el.vrScene.addEventListener("enter-vr", () => {
-  console.log("Entered VR mode");
-  // VR HUDはVR内では不要なので非表示にする（CSSでも対応）
-  el.vrHud.style.display = "none";
-});
-el.vrScene.addEventListener("exit-vr", () => {
-  console.log("Exited VR mode");
-  setVrEnabled(false);
-});
+// ★重要：2Dで作ったvideoを「移動」しない。VR用videoを別で作って srcObject を共有。
+function addOrUpdateVideoToVR(publicationId, mediaEl2D) {
+  if (!mediaEl2D) return;
+  if (vrState.videoMap.has(publicationId)) return;
 
+  const assetId = `vr-video-${publicationId}`;
+
+  const vrVideo = document.createElement("video");
+  vrVideo.id = assetId;
+  vrVideo.setAttribute("playsinline", "");
+  vrVideo.setAttribute("webkit-playsinline", "");
+  vrVideo.autoplay = true;
+
+  // autoplayブロック回避：VRテクスチャ用は muted で確実に回す（映像だけ）
+  vrVideo.muted = true;
+
+  // 2D videoが持っている MediaStream を共有
+  vrVideo.srcObject = mediaEl2D.srcObject;
+
+  // display:none ではなく「画面外」に置いて生かす
+  el.mediaHub.appendChild(vrVideo);
+
+  // VRのスクリーンを作成（HUD: vr-screensの子）
+  const groupId = `vr-group-${publicationId}`;
+
+  const group = document.createElement("a-entity");
+  group.setAttribute("id", groupId);
+
+  const frame = document.createElement("a-plane");
+  frame.setAttribute("width", "1.66");
+  frame.setAttribute("height", "0.96");
+  frame.setAttribute("position", "0 0 -0.01");
+  frame.setAttribute("color", "#0f172a");
+  frame.setAttribute("material", "opacity: 0.85");
+
+  const screen = document.createElement("a-video");
+  screen.setAttribute("src", `#${assetId}`);
+  screen.setAttribute("width", "1.6");
+  screen.setAttribute("height", "0.9");
+
+  group.appendChild(frame);
+  group.appendChild(screen);
+
+  el.vrScreens.appendChild(group);
+
+  vrState.videoMap.set(publicationId, { videoElId: assetId, groupId });
+  layoutVrScreens();
+
+  // 再生開始（ユーザー操作直後なら通りやすい）
+  vrVideo.play().catch(() => {});
+}
+
+function removeVideoFromVR(publicationId) {
+  const info = vrState.videoMap.get(publicationId);
+  if (!info) return;
+
+  document.getElementById(info.groupId)?.remove();
+  document.getElementById(info.videoElId)?.remove();
+
+  vrState.videoMap.delete(publicationId);
+  layoutVrScreens();
+}
 
 // ------------------------------
 // SkyWay session state
@@ -319,8 +284,8 @@ let me = null;
 
 let localAudio = null;
 let localVideoStream = null;
-
 let isMuted = false;
+
 const subscribed = new Set();
 
 // ------------------------------
@@ -402,12 +367,12 @@ async function subscribePublication(publication) {
     mediaWrap.appendChild(mediaEl);
     el.remoteArea.appendChild(card);
 
-    // VRへ追加：videoだけ貼る（音声だけはVR空間に貼っても意味が薄いので2Dのみ）
+    // 再生開始（保険）
     if (stream.track.kind === "video") {
+      mediaEl.play().catch(() => {});
       addOrUpdateVideoToVR(publication.id, mediaEl);
     }
 
-    // ボタン側も更新
     const btn = document.getElementById(`subscribe-button-${publication.id}`);
     if (btn) btn.textContent = `✅ ${publication.publisher.id} / ${publication.contentType}`;
   } catch (e) {
@@ -494,8 +459,6 @@ el.join.onclick = async () => {
       document.getElementById(`subscribe-button-${pubId}`)?.remove();
       document.getElementById(`media-${pubId}`)?.closest(".remote-card")?.remove();
       subscribed.delete(pubId);
-
-      // VRからも除去
       removeVideoFromVR(pubId);
     });
 
@@ -518,8 +481,9 @@ el.join.onclick = async () => {
         setUiJoined(false);
         clearRemoteUi();
 
-        // VRもリセット
+        // VRリセット
         [...vrState.videoMap.keys()].forEach(removeVideoFromVR);
+        el.mediaHub.replaceChildren();
 
         el.localVideo.pause();
         el.localVideo.removeAttribute("src");
@@ -553,15 +517,6 @@ el.join.onclick = async () => {
     me = null;
   }
 };
-
-["input", "change"].forEach((evt) => {
-  el.vrX.addEventListener(evt, applyVrHudOffset);
-  el.vrY.addEventListener(evt, applyVrHudOffset);
-  el.vrZ.addEventListener(evt, applyVrHudOffset);
-  el.vrPitch.addEventListener(evt, applyVrHudOffset);
-});
-applyVrHudOffset();
-
 
 // init
 setConnState("disconnected");

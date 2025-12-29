@@ -311,7 +311,7 @@ input[type="text"]:focus{
   height: 100vh;
 }
 
-/* VR HUD（VRに入る前の案内） */
+/* VR HUD */
 .vr-hud {
   position: absolute;
   left: 12px;
@@ -328,17 +328,11 @@ input[type="text"]:focus{
   backdrop-filter: blur(10px);
 }
 
-/* A-FrameがVRモードに入ると <html> に .a-vrmode を付与するので、それを利用してHUDを隠す */
-.a-vrmode #vr-hud {
-  display: none;
-}
-
 .vr-hud-title { font-weight: 800; }
 .vr-hud-sub { font-size: 12px; color: rgba(156,163,175,.9); margin-top: 2px; }
 
 .vr-hud-left { display: flex; flex-direction: column; gap: 2px; }
 .vr-hud-right { display: flex; gap: 10px; }
-
 
 .vr-controls{
   display:flex;
@@ -362,4 +356,14 @@ input[type="text"]:focus{
 
 .vr-controls input[type="range"]{
   width: 140px;
+}
+
+/* ===== media hub (display:none禁止) ===== */
+.media-hub{
+  position: fixed;
+  left: -9999px;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
 }
