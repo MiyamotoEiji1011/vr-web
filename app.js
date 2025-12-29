@@ -75,35 +75,49 @@ function attachVideoTextureToPlane(videoEl, planeEl) {
 function format3(n) {
   return (Math.round(n * 1000) / 1000).toFixed(3);
 }
-
 let lastHudUpdate = 0;
 function startHudLoop() {
-  const q = new THREE.Quaternion();
-  const euler = new THREE.Euler(0, 0, 0, "YXZ"); // VRカメラっぽい順序
+  const euler = new THREE.Euler(0, 0, 0, "YXZ");
 
   const tick = (t) => {
-    // HUD更新は軽くしたいので 10fps くらいで十分
     if (t - lastHudUpdate > 100) {
       lastHudUpdate = t;
 
-      // カメラのワールド回転を取得 → Euler（角度）へ
-      cameraEl.object3D.getWorldQuaternion(q);
+      // ★ VRならHMD、PCなら通常カメラ
+      const q = getViewQuaternion(cameraEl);
       euler.setFromQuaternion(q);
 
-      // ラジアン→度
       const x = THREE.MathUtils.radToDeg(euler.x);
       const y = THREE.MathUtils.radToDeg(euler.y);
       const z = THREE.MathUtils.radToDeg(euler.z);
 
       hudTextEl.setAttribute(
         "value",
-        `Frame\n- ${FRAME_W}*${FRAME_H}\n- ${FPS}fps\n\ncamera (deg)\n- x: ${format3(x)}\n- y: ${format3(y)}\n- z: ${format3(z)}`
+        `Frame\n- ${FRAME_W}*${FRAME_H}\n- ${FPS}fps\n\nHMD rotation (deg)\n- x: ${format3(x)}\n- y: ${format3(y)}\n- z: ${format3(z)}`
       );
     }
     requestAnimationFrame(tick);
   };
 
   requestAnimationFrame(tick);
+}
+
+
+
+function getViewQuaternion(cameraEl) {
+  const scene = cameraEl.sceneEl;
+
+  // VR中：WebXRの実カメラ（HMDの姿勢）
+  if (scene && scene.is("vr-mode") && scene.camera) {
+    const q = new THREE.Quaternion();
+    scene.camera.getWorldQuaternion(q);
+    return q;
+  }
+
+  // 非VR：通常のa-entity camera
+  const q = new THREE.Quaternion();
+  cameraEl.object3D.getWorldQuaternion(q);
+  return q;
 }
 
 // ------------------------------
