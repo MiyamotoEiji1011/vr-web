@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@skyway-sdk/room/dist/skyway_room-latest.js"></script>
+</head>
+
+<body>
+  <a-scene>
+    <a-entity id="camera" camera position="0 1.6 0" look-controls>
+      <!-- 映像スクリーン（カメラの子） -->
+      <a-plane id="screen"
+               position="0 -0.2 -2"
+               width="3.2"
+               height="1.8"
+               material="shader: flat; color: #111">
+      </a-plane>
+
+      <!-- 右側の情報表示（カメラの子） -->
+      <a-text id="hudText"
+              value="loading..."
+              position="1.9 0.55 -2"
+              width="2.5"
+              color="#FFFFFF"
+              align="left">
+      </a-text>
+    </a-entity>
+
+    <a-sky color="#111"></a-sky>
+  </a-scene>
+
+  <!-- SkyWay受信用video（a-assetsに入れない） -->
+  <video id="remoteVideo" autoplay playsinline webkit-playsinline muted></video>
+
+  <script src="./app.js"></script>
+</body>
+</html>
