@@ -79,7 +79,6 @@ const el = {
   vrAssets: document.getElementById("vr-assets"),
   vrScreens: document.getElementById("vr-screens"),
   vrScene: document.getElementById("vr-scene"),
-  vrSettingsUi: document.getElementById("vr-settings-ui"),
 
     // VR sliders
   vrX: document.getElementById("vr-x"),
@@ -90,12 +89,6 @@ const el = {
   vrYv: document.getElementById("vr-yv"),
   vrZv: document.getElementById("vr-zv"),
   vrPv: document.getElementById("vr-pv"),
-
-  // VR内UIの値表示
-  vrUiXv: document.getElementById("vr-ui-xv"),
-  vrUiYv: document.getElementById("vr-ui-yv"),
-  vrUiZv: document.getElementById("vr-ui-zv"),
-  vrUiPv: document.getElementById("vr-ui-pv"),
 };
 
 function currentMode() {
@@ -161,19 +154,17 @@ const vrState = {
 // VRの画面配置（横に並べる。増えたら2段）
 function layoutVrScreens() {
   const items = [...vrState.videoMap.values()];
-  const numItems = items.length;
-  const perRow = numItems > 2 ? 2 : numItems; // 1 or 2
+  const perRow = 2;
   const spacingX = 1.8;
   const spacingY = 1.1;
 
   items.forEach((item, idx) => {
     const row = Math.floor(idx / perRow);
     const col = idx % perRow;
-    const numRows = Math.ceil(numItems / perRow);
 
-    const x = (col - (perRow - 1) / 2) * spacingX;
-    const y = (-(row - (numRows - 1) / 2)) * spacingY;
-    const z = 0; // Z座標はここでは設定せず、HUDオフセットで一括管理する
+    const x = (col - 0.5) * spacingX; // -0.9, +0.9
+    const y = 0.7 - row * spacingY;   // 少し下に積む
+    const z = 0;
 
     const ent = document.getElementById(item.entityId);
     if (!ent) return;
@@ -222,21 +213,29 @@ function addOrUpdateVideoToVR(publicationId, videoEl) {
   el.vrAssets.appendChild(videoEl);
 
   // a-video entity 作成
-  const groupId = `vr-group-${publicationId}`;
+  const entityId = `vr-screen-${publicationId}`;
   const screen = document.createElement("a-video");
+  screen.setAttribute("id", entityId);
   screen.setAttribute("src", `#${assetId}`);
   screen.setAttribute("width", "1.6");
   screen.setAttribute("height", "0.9");
   screen.setAttribute("rotation", "0 0 0");
 
-  // 映像をグループ化して配置を管理する
+  // 縁取り（見やすく）
+  const frame = document.createElement("a-plane");
+  frame.setAttribute("width", "1.66");
+  frame.setAttribute("height", "0.96");
+  frame.setAttribute("position", "0 0 -0.01");
+  frame.setAttribute("color", "#0f172a");
+  frame.setAttribute("material", "opacity: 0.85");
+
   const group = document.createElement("a-entity");
-  group.setAttribute("id", groupId);
+  group.appendChild(frame);
   group.appendChild(screen);
 
   el.vrScreens.appendChild(group);
 
-  vrState.videoMap.set(publicationId, { videoElId: assetId, entityId: groupId });
+  vrState.videoMap.set(publicationId, { videoElId: assetId, entityId });
   layoutVrScreens();
 }
 
@@ -289,20 +288,12 @@ function applyVrHudOffset() {
   const z = parseFloat(el.vrZ.value);
   const pitch = parseFloat(el.vrPitch.value);
 
-  // 2D UIの値を更新
   el.vrXv.textContent = x.toFixed(2).replace(/\.00$/, "");
   el.vrYv.textContent = y.toFixed(2).replace(/\.00$/, "");
   el.vrZv.textContent = z.toFixed(1);
   el.vrPv.textContent = pitch.toFixed(0);
-  
-  // VR内UIの値を更新
-  el.vrUiXv.setAttribute("value", x.toFixed(2).replace(/\.00$/, ""));
-  el.vrUiYv.setAttribute("value", y.toFixed(2).replace(/\.00$/, ""));
-  el.vrUiZv.setAttribute("value", `${z.toFixed(1)}m`);
-  el.vrUiPv.setAttribute("value", `${pitch.toFixed(0)}°`);
 
-  // A-Frameエンティティに適用
-  // zは「前方」が-Z方向なので値を反転させる
+  // zは「前方」なので A-Frame ではマイナス方向
   el.vrScreens.setAttribute("position", `${x} ${y} ${-z}`);
   el.vrScreens.setAttribute("rotation", `${pitch} 0 0`);
 }
@@ -317,36 +308,6 @@ el.vrScene.addEventListener("exit-vr", () => {
   console.log("Exited VR mode");
   setVrEnabled(false);
 });
-
-// VR内UIのトグル (Aボタン)
-document.addEventListener("DOMContentLoaded", () => {
-  const scene = el.vrScene;
-  if (scene.hasLoaded) {
-    setupVrUiInteraction();
-  } else {
-    scene.addEventListener("loaded", setupVrUiInteraction);
-  }
-});
-
-function setupVrUiInteraction() {
-  const rightHand = document.getElementById("right-hand");
-  rightHand.addEventListener("abuttondown", () => {
-    const currentVisibility = el.vrSettingsUi.getAttribute("visible");
-    el.vrSettingsUi.setAttribute("visible", !currentVisibility);
-  });
-
-  // VR内UIのボタンクリック処理
-  el.vrSettingsUi.querySelectorAll(".clickable").forEach(button => {
-    button.addEventListener("click", () => {
-      const targetId = button.dataset.target;
-      const delta = parseFloat(button.dataset.delta);
-      const targetInput = document.getElementById(targetId);
-      
-      targetInput.value = (parseFloat(targetInput.value) + delta).toFixed(2);
-      applyVrHudOffset();
-    });
-  });
-}
 
 
 // ------------------------------

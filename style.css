@@ -333,11 +333,6 @@ input[type="text"]:focus{
   display: none;
 }
 
-/* VR内UIでクリック可能なオブジェクトのホバースタイル */
-.clickable:hover {
-  opacity: 0.7;
-}
-
 .vr-hud-title { font-weight: 800; }
 .vr-hud-sub { font-size: 12px; color: rgba(156,163,175,.9); margin-top: 2px; }
 
