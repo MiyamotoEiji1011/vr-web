@@ -64,6 +64,33 @@
                 <span>音声をPublish</span>
               </label>
             </div>
+            <div class="quality">
+              <label class="field">
+                <span class="label">解像度</span>
+                <select id="video-res">
+                  <option value="qvga">320×240</option>
+                  <option value="vga">640×480</option>
+                  <option value="hd" selected>1280×720</option>
+                  <option value="fhd">1920×1080</option>
+                </select>
+              </label>
+
+              <label class="field">
+                <span class="label">FPS</span>
+                <select id="video-fps">
+                  <option value="15">15</option>
+                  <option value="24">24</option>
+                  <option value="30" selected>30</option>
+                  <option value="60">60</option>
+                </select>
+              </label>
+
+              <label class="toggle">
+                <input id="video-hq" type="checkbox" />
+                <span>高画質優先（帯域が足りないとカクつく）</span>
+              </label>
+            </div>
+
             <div class="hint" id="pub-hint">※ モードが Subscribeのみ の場合は無効になります</div>
           </div>
 

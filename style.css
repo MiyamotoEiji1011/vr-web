@@ -367,3 +367,24 @@ input[type="text"]:focus{
   height: 1px;
   overflow: hidden;
 }
+
+.quality{
+  display:flex;
+  gap:12px;
+  align-items:flex-end;
+  flex-wrap:wrap;
+}
+
+select{
+  width:100%;
+  padding: 12px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(34,48,71,.9);
+  background: rgba(11,15,23,.6);
+  color: var(--text);
+  outline:none;
+}
+select:focus{
+  border-color: rgba(124,58,237,.8);
+  box-shadow: 0 0 0 4px rgba(124,58,237,.18);
+}

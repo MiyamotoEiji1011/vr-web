@@ -89,6 +89,11 @@ const el = {
 
   // media hub
   mediaHub: document.getElementById("media-hub"),
+
+  videoRes: document.getElementById("video-res"),
+  videoFps: document.getElementById("video-fps"),
+  videoHq: document.getElementById("video-hq"),
+
 };
 
 function currentMode() {
@@ -386,6 +391,31 @@ function attachLocalPreview(videoStream) {
   videoStream.attach(el.localVideo);
   el.localVideo.play().catch(() => {});
 }
+
+function resToSize(key) {
+  switch (key) {
+    case "qvga": return { w: 320, h: 240 };
+    case "vga":  return { w: 640, h: 480 };
+    case "hd":   return { w: 1280, h: 720 };
+    case "fhd":  return { w: 1920, h: 1080 };
+    default:     return { w: 1280, h: 720 };
+  }
+}
+
+function buildVideoConstraints() {
+  const { w, h } = resToSize(el.videoRes.value);
+  const fps = parseInt(el.videoFps.value, 10) || 30;
+
+  // HQ優先：ideal を強めに。失敗しやすいので fallbackも後で入れる
+  const preferHigh = el.videoHq.checked;
+
+  return {
+    width:  preferHigh ? { ideal: w } : { ideal: w, min: 160 },
+    height: preferHigh ? { ideal: h } : { ideal: h, min: 120 },
+    frameRate: preferHigh ? { ideal: fps } : { ideal: fps, min: 10 },
+  };
+}
+
 
 // ------------------------------
 // Join / Leave
