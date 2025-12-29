@@ -26,7 +26,7 @@
                  material="shader: flat; color: #111">
         </a-plane>
 
-        <!-- HUD -->
+        <!-- HUD（右側） -->
         <a-text id="hudText"
                 value="loading..."
                 position="0.8 0 -2"
@@ -34,15 +34,24 @@
                 color="#FFFFFF"
                 align="left">
         </a-text>
+
+        <!-- コントローラー情報表示（左側） -->
+        <a-text id="controllerInfo"
+                value="Controllers\nInitializing..."
+                position="-1.5 0 -2"
+                width="2.5"
+                color="#00FF00"
+                align="left">
+        </a-text>
       </a-entity>
 
       <!-- 6DoF コントローラー: HTC Vive -->
-      <a-entity vive-controls="hand: left"></a-entity>
-      <a-entity vive-controls="hand: right"></a-entity>
+      <a-entity id="leftVive" vive-controls="hand: left"></a-entity>
+      <a-entity id="rightVive" vive-controls="hand: right"></a-entity>
 
       <!-- 6DoF コントローラー: Oculus Touch -->
-      <a-entity oculus-touch-controls="hand: left"></a-entity>
-      <a-entity oculus-touch-controls="hand: right"></a-entity>
+      <a-entity id="leftOculus" oculus-touch-controls="hand: left"></a-entity>
+      <a-entity id="rightOculus" oculus-touch-controls="hand: right"></a-entity>
     </a-entity>
 
     <!-- 環境 -->

@@ -8,6 +8,7 @@ const { nowInSec, SkyWayAuthToken, SkyWayContext, SkyWayRoom } = skyway_room;
 const remoteVideoEl = document.getElementById("remoteVideo");
 const screenEl = document.getElementById("screen");
 const hudTextEl = document.getElementById("hudText");
+const controllerInfoEl = document.getElementById("controllerInfo");
 
 // 表示したい仕様値（固定）
 const FRAME_W = 1080;
@@ -15,7 +16,7 @@ const FRAME_H = 720;
 const FPS = 30;
 
 // ------------------------------
-// A-Frame カスタムコンポーネント
+// A-Frame カスタムコンポーネント: rotation-reader
 // ------------------------------
 AFRAME.registerComponent('rotation-reader', {
   init: function() {
@@ -45,6 +46,116 @@ AFRAME.registerComponent('rotation-reader', {
 
   format3: function(n) {
     return (Math.round(n * 1000) / 1000).toFixed(3);
+  }
+});
+
+// ------------------------------
+// A-Frame カスタムコンポーネント: controller-monitor
+// ------------------------------
+AFRAME.registerComponent('controller-monitor', {
+  init: function() {
+    this.lastUpdate = 0;
+    // コントローラーエンティティを取得
+    this.leftControllers = [
+      document.getElementById('leftVive'),
+      document.getElementById('leftOculus')
+    ];
+    this.rightControllers = [
+      document.getElementById('rightVive'),
+      document.getElementById('rightOculus')
+    ];
+  },
+  
+  tick: function(time) {
+    // 100msごとに更新
+    if (time - this.lastUpdate < 100) return;
+    this.lastUpdate = time;
+
+    const leftInfo = this.getControllerInfo(this.leftControllers);
+    const rightInfo = this.getControllerInfo(this.rightControllers);
+
+    const display = this.formatControllerDisplay(rightInfo, leftInfo);
+    if (controllerInfoEl) {
+      controllerInfoEl.setAttribute("value", display);
+    }
+  },
+
+  getControllerInfo: function(controllers) {
+    for (let controller of controllers) {
+      if (!controller) continue;
+      
+      // コントローラーのGamepadオブジェクトを取得
+      const trackedControls = controller.components['tracked-controls'];
+      if (!trackedControls) continue;
+      
+      const gamepad = trackedControls.controller;
+      if (!gamepad) continue;
+
+      // ボタンとAxesの情報を取得
+      const buttons = [];
+      if (gamepad.buttons) {
+        for (let i = 0; i < gamepad.buttons.length; i++) {
+          buttons.push({
+            index: i,
+            pressed: gamepad.buttons[i].pressed ? 1 : 0,
+            value: gamepad.buttons[i].value.toFixed(2)
+          });
+        }
+      }
+
+      const axes = {
+        x: gamepad.axes && gamepad.axes[0] ? gamepad.axes[0].toFixed(2) : "0.00",
+        y: gamepad.axes && gamepad.axes[1] ? gamepad.axes[1].toFixed(2) : "0.00"
+      };
+
+      return { buttons, axes, found: true };
+    }
+    
+    return { buttons: [], axes: { x: "0.00", y: "0.00" }, found: false };
+  },
+
+  formatControllerDisplay: function(rightInfo, leftInfo) {
+    let text = "Controllers\n\n";
+
+    // Right Controller
+    text += "Right\n";
+    if (rightInfo.found) {
+      text += "Buttons: ";
+      if (rightInfo.buttons.length > 0) {
+        text += rightInfo.buttons.map(b => `B${b.index}:${b.pressed}`).join(" ");
+      } else {
+        text += "None";
+      }
+      text += `\nJoy: (x:${rightInfo.axes.x}, y:${rightInfo.axes.y})\n`;
+    } else {
+      text += "Not detected\n";
+    }
+
+    text += "\n";
+
+    // Left Controller
+    text += "Left\n";
+    if (leftInfo.found) {
+      text += "Buttons: ";
+      if (leftInfo.buttons.length > 0) {
+        text += leftInfo.buttons.map(b => `B${b.index}:${b.pressed}`).join(" ");
+      } else {
+        text += "None";
+      }
+      text += `\nJoy: (x:${leftInfo.axes.x}, y:${leftInfo.axes.y})`;
+    } else {
+      text += "Not detected";
+    }
+
+    return text;
+  }
+});
+
+// カメラにコントローラーモニターを追加
+window.addEventListener('load', () => {
+  const camera = document.getElementById('camera');
+  if (camera) {
+    camera.setAttribute('controller-monitor', '');
   }
 });
 
