@@ -94,6 +94,17 @@
             <div class="hint" id="pub-hint">※ モードが Subscribeのみ の場合は無効になります</div>
           </div>
 
+          <div class="field">
+            <span class="label">VRデバッグモード</span>
+            <div class="toggles">
+              <label class="toggle">
+                <input id="vr-debug" type="checkbox" />
+                <span>VR空間でデバッグ情報を表示</span>
+              </label>
+            </div>
+            <div class="hint">※ VRモードでヘッドセット/コントローラー情報とストリーム詳細を表示</div>
+          </div>
+
           <div class="field actions">
             <button id="join" class="btn primary">Join</button>
             <button id="leave" class="btn" disabled>Leave</button>
@@ -169,6 +180,199 @@
           <a-camera id="vr-camera" wasd-controls-enabled="false">
             <!-- ★頭に追従するHUDスクリーン群 -->
             <a-entity id="vr-screens" position="0 -0.2 -1.6" rotation="-8 0 0"></a-entity>
+            
+            <!-- ★映像切り替えコントロール（スクリーンの下） -->
+            <a-entity id="vr-stream-controls" position="0 -0.8 -1.6" rotation="-8 0 0" visible="false">
+              <!-- 左ボタン -->
+              <a-entity id="vr-prev-btn" class="vr-nav-btn" position="-0.4 0 0">
+                <a-plane 
+                  width="0.15" 
+                  height="0.15" 
+                  color="#7c3aed" 
+                  opacity="0.9"
+                  class="clickable">
+                </a-plane>
+                <a-text 
+                  value="<" 
+                  align="center" 
+                  width="0.5"
+                  color="#ffffff"
+                  position="0 0 0.01">
+                </a-text>
+              </a-entity>
+              
+              <!-- ストリーム情報表示 -->
+              <a-entity id="vr-stream-info" position="0 0 0">
+                <a-plane 
+                  width="0.6" 
+                  height="0.15" 
+                  color="#1e293b" 
+                  opacity="0.9">
+                </a-plane>
+                <a-text 
+                  id="vr-stream-counter"
+                  value="1 / 1" 
+                  align="center" 
+                  width="0.5"
+                  color="#22c55e"
+                  position="0 0.03 0.01">
+                </a-text>
+                <a-text 
+                  id="vr-stream-name"
+                  value="Stream ID" 
+                  align="center" 
+                  width="0.4"
+                  color="#9ca3af"
+                  position="0 -0.03 0.01">
+                </a-text>
+              </a-entity>
+              
+              <!-- 右ボタン -->
+              <a-entity id="vr-next-btn" class="vr-nav-btn" position="0.4 0 0">
+                <a-plane 
+                  width="0.15" 
+                  height="0.15" 
+                  color="#7c3aed" 
+                  opacity="0.9"
+                  class="clickable">
+                </a-plane>
+                <a-text 
+                  value=">" 
+                  align="center" 
+                  width="0.5"
+                  color="#ffffff"
+                  position="0 0 0.01">
+                </a-text>
+              </a-entity>
+            </a-entity>
+            
+            <!-- ★デバッグパネル（右側に配置） -->
+            <a-entity id="vr-debug-panel" position="1.5 -0.15 -1.0" rotation="0 -20 0" visible="false">
+              <!-- 背景パネル -->
+              <a-plane 
+                width="0.8" 
+                height="1.2" 
+                color="#0f172a" 
+                opacity="0.95"
+                position="0 0 -0.01">
+                <a-plane 
+                  width="0.78" 
+                  height="1.18" 
+                  color="#1e293b" 
+                  opacity="0.8"
+                  position="0 0 0.001">
+                </a-plane>
+              </a-plane>
+              
+              <!-- タイトル -->
+              <a-text 
+                id="debug-title"
+                value="DEBUG INFO" 
+                align="center" 
+                width="0.7"
+                color="#7c3aed"
+                position="0 0.55 0"
+                font="https://cdn.aframe.io/fonts/Roboto-msdf.json">
+              </a-text>
+              
+              <!-- ヘッドセット情報 -->
+              <a-text 
+                id="debug-headset-title"
+                value="[HEADSET]" 
+                align="left" 
+                width="0.7"
+                color="#22c55e"
+                position="-0.35 0.42 0"
+                font="https://cdn.aframe.io/fonts/Roboto-msdf.json">
+              </a-text>
+              <a-text 
+                id="debug-headset-pos"
+                value="Pos: 0.00, 0.00, 0.00" 
+                align="left" 
+                width="0.6"
+                color="#e5e7eb"
+                position="-0.35 0.32 0"
+                font="https://cdn.aframe.io/fonts/Roboto-msdf.json">
+              </a-text>
+              <a-text 
+                id="debug-headset-rot"
+                value="Rot: 0.00, 0.00, 0.00" 
+                align="left" 
+                width="0.6"
+                color="#e5e7eb"
+                position="-0.35 0.22 0"
+                font="https://cdn.aframe.io/fonts/Roboto-msdf.json">
+              </a-text>
+              
+              <!-- 左コントローラー情報 -->
+              <a-text 
+                id="debug-left-title"
+                value="[LEFT CONTROLLER]" 
+                align="left" 
+                width="0.7"
+                color="#22c55e"
+                position="-0.35 0.08 0"
+                font="https://cdn.aframe.io/fonts/Roboto-msdf.json">
+              </a-text>
+              <a-text 
+                id="debug-left-buttons"
+                value="Btns: -" 
+                align="left" 
+                width="0.6"
+                color="#e5e7eb"
+                position="-0.35 -0.02 0"
+                font="https://cdn.aframe.io/fonts/Roboto-msdf.json">
+              </a-text>
+              <a-text 
+                id="debug-left-axes"
+                value="Axes: -" 
+                align="left" 
+                width="0.6"
+                color="#e5e7eb"
+                position="-0.35 -0.12 0"
+                font="https://cdn.aframe.io/fonts/Roboto-msdf.json">
+              </a-text>
+              
+              <!-- 右コントローラー情報 -->
+              <a-text 
+                id="debug-right-title"
+                value="[RIGHT CONTROLLER]" 
+                align="left" 
+                width="0.7"
+                color="#22c55e"
+                position="-0.35 -0.26 0"
+                font="https://cdn.aframe.io/fonts/Roboto-msdf.json">
+              </a-text>
+              <a-text 
+                id="debug-right-buttons"
+                value="Btns: -" 
+                align="left" 
+                width="0.6"
+                color="#e5e7eb"
+                position="-0.35 -0.36 0"
+                font="https://cdn.aframe.io/fonts/Roboto-msdf.json">
+              </a-text>
+              <a-text 
+                id="debug-right-axes"
+                value="Axes: -" 
+                align="left" 
+                width="0.6"
+                color="#e5e7eb"
+                position="-0.35 -0.46 0"
+                font="https://cdn.aframe.io/fonts/Roboto-msdf.json">
+              </a-text>
+              
+              <!-- ストリーム情報 -->
+              <a-text 
+                id="debug-stream-title"
+                value="[STREAMS]" 
+                align="left" 
+                width="0.7"
+                color="#22c55e"
+                position="-0.35 -0.60 0"
+                font="https://cdn.aframe.io/fonts/Roboto-msdf.json">
+              </a-text>
+            </a-entity>
           </a-camera>
         </a-entity>
 

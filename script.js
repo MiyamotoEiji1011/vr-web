@@ -76,6 +76,7 @@ const el = {
   vrRoot: document.getElementById("vr-root"),
   exitVr: document.getElementById("exit-vr"),
   vrScreens: document.getElementById("vr-screens"),
+  vrDebug: document.getElementById("vr-debug"),
 
   // VR sliders
   vrX: document.getElementById("vr-x"),
@@ -94,6 +95,16 @@ const el = {
   videoRes: document.getElementById("video-res"),
   videoFps: document.getElementById("video-fps"),
   videoHq: document.getElementById("video-hq"),
+
+  // Debug panel elements
+  debugPanel: document.getElementById("vr-debug-panel"),
+  debugHeadsetPos: document.getElementById("debug-headset-pos"),
+  debugHeadsetRot: document.getElementById("debug-headset-rot"),
+  debugLeftButtons: document.getElementById("debug-left-buttons"),
+  debugLeftAxes: document.getElementById("debug-left-axes"),
+  debugRightButtons: document.getElementById("debug-right-buttons"),
+  debugRightAxes: document.getElementById("debug-right-axes"),
+  debugStreamTitle: document.getElementById("debug-stream-title"),
 };
 
 // --- media-hub が無ければ自動生成（落ちないようにする） ---
@@ -129,6 +140,9 @@ function setUiJoined(joined) {
 
   el.roomName.disabled = joined;
   el.modeRadios.forEach((r) => (r.disabled = joined));
+  
+  // VRデバッグモードもJoin後は変更不可
+  if (el.vrDebug) el.vrDebug.disabled = joined;
 
   updatePublishControls();
   el.muteAv.disabled = !joined;
@@ -189,12 +203,231 @@ function applyVrHudOffset() {
 applyVrHudOffset();
 
 // ------------------------------
-// VR: screen management
+// VR DEBUG: State and update
+// ------------------------------
+const debugState = {
+  enabled: false,
+  animationId: null,
+  streamInfo: new Map(), // publicationId -> info
+  // Controller button states for edge detection
+  prevLeftTrigger: false,
+  prevRightTrigger: false,
+  prevLeftGrip: false,
+  prevRightGrip: false,
+};
+
+function updateDebugPanel() {
+  if (!debugState.enabled || !vrState.enabled) return;
+  
+  try {
+    const scene = document.querySelector('#vr-scene');
+    if (!scene || !scene.renderer) {
+      debugState.animationId = requestAnimationFrame(updateDebugPanel);
+      return;
+    }
+
+    const renderer = scene.renderer;
+    const xrSession = renderer.xr?.getSession?.();
+    
+    if (!xrSession) {
+      debugState.animationId = requestAnimationFrame(updateDebugPanel);
+      return;
+    }
+
+    // Get camera position and rotation
+    const camera = document.querySelector('#vr-camera');
+    if (camera) {
+      const pos = camera.object3D.position;
+      const rot = camera.object3D.rotation;
+      
+      if (el.debugHeadsetPos) {
+        el.debugHeadsetPos.setAttribute('value', 
+          `Pos: ${pos.x.toFixed(2)}, ${pos.y.toFixed(2)}, ${pos.z.toFixed(2)}`
+        );
+      }
+      
+      if (el.debugHeadsetRot) {
+        const rotDeg = {
+          x: (rot.x * 180 / Math.PI).toFixed(1),
+          y: (rot.y * 180 / Math.PI).toFixed(1),
+          z: (rot.z * 180 / Math.PI).toFixed(1)
+        };
+        el.debugHeadsetRot.setAttribute('value', 
+          `Rot: ${rotDeg.x}, ${rotDeg.y}, ${rotDeg.z}`
+        );
+      }
+    }
+
+    // Get controller input
+    const inputSources = xrSession.inputSources;
+    let leftController = null;
+    let rightController = null;
+
+    for (const source of inputSources) {
+      if (source.handedness === 'left') leftController = source;
+      if (source.handedness === 'right') rightController = source;
+    }
+
+    // Update left controller
+    if (leftController && leftController.gamepad) {
+      const gp = leftController.gamepad;
+      
+      // Check for trigger press (index 0) for previous stream
+      const leftTrigger = gp.buttons[0]?.pressed || false;
+      if (leftTrigger && !debugState.prevLeftTrigger) {
+        switchToPrevStream();
+      }
+      debugState.prevLeftTrigger = leftTrigger;
+      
+      // Buttons
+      const buttonStates = gp.buttons.map((btn, i) => {
+        if (btn.pressed) return `${i}:P`;
+        if (btn.touched) return `${i}:T`;
+        if (btn.value > 0.1) return `${i}:${btn.value.toFixed(2)}`;
+        return null;
+      }).filter(Boolean).join(' ');
+      
+      if (el.debugLeftButtons) {
+        el.debugLeftButtons.setAttribute('value', 
+          `Btns: ${buttonStates || 'None'}`
+        );
+      }
+      
+      // Axes (joystick)
+      const axesStr = gp.axes.map((v, i) => `[${i}]:${v.toFixed(2)}`).join(' ');
+      if (el.debugLeftAxes) {
+        el.debugLeftAxes.setAttribute('value', 
+          `Axes: ${axesStr || 'None'}`
+        );
+      }
+    } else {
+      debugState.prevLeftTrigger = false;
+      if (el.debugLeftButtons) el.debugLeftButtons.setAttribute('value', 'Btns: N/A');
+      if (el.debugLeftAxes) el.debugLeftAxes.setAttribute('value', 'Axes: N/A');
+    }
+
+    // Update right controller
+    if (rightController && rightController.gamepad) {
+      const gp = rightController.gamepad;
+      
+      // Check for trigger press (index 0) for next stream
+      const rightTrigger = gp.buttons[0]?.pressed || false;
+      if (rightTrigger && !debugState.prevRightTrigger) {
+        switchToNextStream();
+      }
+      debugState.prevRightTrigger = rightTrigger;
+      
+      // Buttons
+      const buttonStates = gp.buttons.map((btn, i) => {
+        if (btn.pressed) return `${i}:P`;
+        if (btn.touched) return `${i}:T`;
+        if (btn.value > 0.1) return `${i}:${btn.value.toFixed(2)}`;
+        return null;
+      }).filter(Boolean).join(' ');
+      
+      if (el.debugRightButtons) {
+        el.debugRightButtons.setAttribute('value', 
+          `Btns: ${buttonStates || 'None'}`
+        );
+      }
+      
+      // Axes
+      const axesStr = gp.axes.map((v, i) => `[${i}]:${v.toFixed(2)}`).join(' ');
+      if (el.debugRightAxes) {
+        el.debugRightAxes.setAttribute('value', 
+          `Axes: ${axesStr || 'None'}`
+        );
+      }
+    } else {
+      debugState.prevRightTrigger = false;
+      if (el.debugRightButtons) el.debugRightButtons.setAttribute('value', 'Btns: N/A');
+      if (el.debugRightAxes) el.debugRightAxes.setAttribute('value', 'Axes: N/A');
+    }
+
+    // Update stream info
+    updateDebugStreamInfo();
+
+  } catch (e) {
+    console.warn('Debug panel update error:', e);
+  }
+  
+  debugState.animationId = requestAnimationFrame(updateDebugPanel);
+}
+
+function updateDebugStreamInfo() {
+  if (!el.debugStreamTitle) return;
+  
+  let streamText = '[STREAMS]';
+  let yOffset = -0.70;
+  
+  // Remove old stream debug text elements
+  const oldTexts = document.querySelectorAll('[id^="debug-stream-"]');
+  oldTexts.forEach(t => {
+    if (t.id !== 'debug-stream-title') t.remove();
+  });
+  
+  debugState.streamInfo.forEach((info, pubId) => {
+    const streamTextEl = document.createElement('a-text');
+    streamTextEl.id = `debug-stream-${pubId}`;
+    streamTextEl.setAttribute('value', info.text);
+    streamTextEl.setAttribute('align', 'left');
+    streamTextEl.setAttribute('width', '0.6');
+    streamTextEl.setAttribute('color', '#9ca3af');
+    streamTextEl.setAttribute('position', `-0.35 ${yOffset} 0`);
+    streamTextEl.setAttribute('font', 'https://cdn.aframe.io/fonts/Roboto-msdf.json');
+    
+    el.debugPanel.appendChild(streamTextEl);
+    yOffset -= 0.08;
+  });
+  
+  if (debugState.streamInfo.size === 0) {
+    const noStreamEl = document.createElement('a-text');
+    noStreamEl.id = 'debug-stream-none';
+    noStreamEl.setAttribute('value', 'No active streams');
+    noStreamEl.setAttribute('align', 'left');
+    noStreamEl.setAttribute('width', '0.6');
+    noStreamEl.setAttribute('color', '#6b7280');
+    noStreamEl.setAttribute('position', `-0.35 ${yOffset} 0`);
+    noStreamEl.setAttribute('font', 'https://cdn.aframe.io/fonts/Roboto-msdf.json');
+    el.debugPanel.appendChild(noStreamEl);
+  }
+}
+
+function startDebugUpdate() {
+  if (debugState.enabled && !debugState.animationId) {
+    debugState.animationId = requestAnimationFrame(updateDebugPanel);
+  }
+}
+
+function stopDebugUpdate() {
+  if (debugState.animationId) {
+    cancelAnimationFrame(debugState.animationId);
+    debugState.animationId = null;
+  }
+}
+
+function setDebugEnabled(enabled) {
+  debugState.enabled = enabled;
+  
+  if (el.debugPanel) {
+    el.debugPanel.setAttribute('visible', enabled ? 'true' : 'false');
+  }
+  
+  if (enabled && vrState.enabled) {
+    startDebugUpdate();
+  } else {
+    stopDebugUpdate();
+  }
+}
+
+// ------------------------------
+// VR: screen management (Single stream display with switching)
 // ------------------------------
 const vrState = {
   enabled: false,
-  // publication.id -> { videoElId, groupId }
-  videoMap: new Map(),
+  // Array of { publicationId, videoElId, groupId, publisherId, kind }
+  streams: [],
+  currentStreamIndex: 0,
 };
 
 function setVrEnabled(on) {
@@ -202,41 +435,118 @@ function setVrEnabled(on) {
   if (on) {
     el.vrRoot.classList.remove("vr-hidden");
     el.uiRoot.classList.add("ui-hidden");
+    
+    // Enable debug if checkbox is checked
+    if (el.vrDebug?.checked) {
+      setDebugEnabled(true);
+    }
   } else {
     el.vrRoot.classList.add("vr-hidden");
     el.uiRoot.classList.remove("ui-hidden");
+    
+    // Disable debug when exiting VR
+    setDebugEnabled(false);
   }
 }
 
 el.toggleVr.onclick = () => setVrEnabled(!vrState.enabled);
 el.exitVr.onclick = () => setVrEnabled(false);
 
-function layoutVrScreens() {
-  const items = [...vrState.videoMap.values()];
-  const perRow = 2;
-  const spacingX = 1.8;
-  const spacingY = 1.1;
-
-  items.forEach((item, idx) => {
-    const row = Math.floor(idx / perRow);
-    const col = idx % perRow;
-
-    const x = (col - 0.5) * spacingX;
-    const y = 0.2 - row * spacingY;
-    const z = 0;
-
-    const group = document.getElementById(item.groupId);
-    if (!group) return;
-    group.setAttribute("position", `${x} ${y} ${z}`);
+// VR Stream Navigation
+function updateVrStreamDisplay() {
+  if (!el.vrScreens) return;
+  
+  // Hide all streams
+  vrState.streams.forEach(stream => {
+    const group = document.getElementById(stream.groupId);
+    if (group) {
+      group.setAttribute('visible', 'false');
+    }
   });
+  
+  // Show current stream
+  if (vrState.streams.length > 0) {
+    const currentStream = vrState.streams[vrState.currentStreamIndex];
+    if (currentStream) {
+      const group = document.getElementById(currentStream.groupId);
+      if (group) {
+        group.setAttribute('visible', 'true');
+        // Center position
+        group.setAttribute('position', '0 0.2 0');
+      }
+    }
+  }
+  
+  updateVrStreamInfo();
 }
 
-// ★重要：2Dで作ったvideoを「移動」しない。VR用videoを別で作って srcObject を共有。
-function addOrUpdateVideoToVR(publicationId, mediaEl2D) {
+function updateVrStreamInfo() {
+  const streamControls = document.getElementById('vr-stream-controls');
+  const counterEl = document.getElementById('vr-stream-counter');
+  const nameEl = document.getElementById('vr-stream-name');
+  
+  if (!streamControls) return;
+  
+  if (vrState.streams.length === 0) {
+    streamControls.setAttribute('visible', 'false');
+    return;
+  }
+  
+  streamControls.setAttribute('visible', 'true');
+  
+  if (counterEl) {
+    const current = vrState.currentStreamIndex + 1;
+    const total = vrState.streams.length;
+    counterEl.setAttribute('value', `${current} / ${total}`);
+  }
+  
+  if (nameEl && vrState.streams[vrState.currentStreamIndex]) {
+    const stream = vrState.streams[vrState.currentStreamIndex];
+    const shortId = stream.publicationId.substring(0, 8);
+    const displayName = `${stream.publisherId} (${shortId})`;
+    nameEl.setAttribute('value', displayName);
+  }
+}
+
+function switchToPrevStream() {
+  if (vrState.streams.length === 0) return;
+  vrState.currentStreamIndex = (vrState.currentStreamIndex - 1 + vrState.streams.length) % vrState.streams.length;
+  updateVrStreamDisplay();
+  console.log('Switched to stream:', vrState.currentStreamIndex);
+}
+
+function switchToNextStream() {
+  if (vrState.streams.length === 0) return;
+  vrState.currentStreamIndex = (vrState.currentStreamIndex + 1) % vrState.streams.length;
+  updateVrStreamDisplay();
+  console.log('Switched to stream:', vrState.currentStreamIndex);
+}
+
+// Setup click events for VR navigation buttons
+function setupVrNavButtons() {
+  const prevBtn = document.querySelector('#vr-prev-btn .clickable');
+  const nextBtn = document.querySelector('#vr-next-btn .clickable');
+  
+  if (prevBtn) {
+    prevBtn.addEventListener('click', switchToPrevStream);
+  }
+  
+  if (nextBtn) {
+    nextBtn.addEventListener('click', switchToNextStream);
+  }
+  
+  console.log('VR navigation buttons setup complete');
+}
+
+// ★重要:2Dで作ったvideoを「移動」しない。VR用videoを別で作って srcObject を共有。
+function addOrUpdateVideoToVR(publicationId, mediaEl2D, publisherId = 'Unknown') {
   if (!mediaEl2D) return;
   if (!el.mediaHub) return;
   if (!el.vrScreens) return;
-  if (vrState.videoMap.has(publicationId)) return;
+  
+  // Already exists?
+  const existingIndex = vrState.streams.findIndex(s => s.publicationId === publicationId);
+  if (existingIndex !== -1) return;
 
   const assetId = `vr-video-${publicationId}`;
 
@@ -246,7 +556,7 @@ function addOrUpdateVideoToVR(publicationId, mediaEl2D) {
   vrVideo.setAttribute("webkit-playsinline", "");
   vrVideo.autoplay = true;
 
-  // autoplayブロック回避：VRテクスチャ用は muted で確実に回す（映像だけ）
+  // autoplayブロック回避:VRテクスチャ用は muted で確実に回す（映像だけ）
   vrVideo.muted = true;
 
   // 2D videoが持っている MediaStream を共有
@@ -260,44 +570,91 @@ function addOrUpdateVideoToVR(publicationId, mediaEl2D) {
 
   const group = document.createElement("a-entity");
   group.setAttribute("id", groupId);
+  group.setAttribute("visible", "false"); // Initially hidden
 
   const frame = document.createElement("a-plane");
-  frame.setAttribute("width", "1.66");
-  frame.setAttribute("height", "0.96");
+  frame.setAttribute("width", "2.4");
+  frame.setAttribute("height", "1.35");
   frame.setAttribute("position", "0 0 -0.01");
-  frame.setAttribute("color", "#0f172a");
-  frame.setAttribute("material", "opacity: 0.85");
+  frame.setAttribute("color", "#1e293b");
+  group.appendChild(frame);
 
   const screen = document.createElement("a-video");
   screen.setAttribute("src", `#${assetId}`);
-  screen.setAttribute("width", "1.6");
-  screen.setAttribute("height", "0.9");
-
-  group.appendChild(frame);
+  screen.setAttribute("width", "2.3");
+  screen.setAttribute("height", "1.3");
+  screen.setAttribute("position", "0 0 0");
   group.appendChild(screen);
 
   el.vrScreens.appendChild(group);
 
-  vrState.videoMap.set(publicationId, { videoElId: assetId, groupId });
-  layoutVrScreens();
-
-  // 再生開始（ユーザー操作直後なら通りやすい）
-  vrVideo.play().catch(() => {});
+  // Add to streams array
+  vrState.streams.push({ 
+    publicationId, 
+    videoElId: assetId, 
+    groupId,
+    publisherId,
+    kind: 'video'
+  });
+  
+  // If this is the first stream, show it
+  if (vrState.streams.length === 1) {
+    vrState.currentStreamIndex = 0;
+  }
+  
+  updateVrStreamDisplay();
+  
+  // Add stream info to debug
+  if (debugState.enabled) {
+    const videoTrack = mediaEl2D.srcObject?.getVideoTracks?.()?.[0];
+    if (videoTrack) {
+      const settings = videoTrack.getSettings();
+      debugState.streamInfo.set(publicationId, {
+        text: `${publicationId.substring(0, 8)}: ${settings.width}x${settings.height}@${settings.frameRate || '?'}fps`
+      });
+      updateDebugStreamInfo();
+    }
+  }
+  
+  console.log('Added stream to VR:', publicationId, 'Total streams:', vrState.streams.length);
 }
 
 function removeVideoFromVR(publicationId) {
-  const info = vrState.videoMap.get(publicationId);
-  if (!info) return;
+  const streamIndex = vrState.streams.findIndex(s => s.publicationId === publicationId);
+  if (streamIndex === -1) return;
 
-  document.getElementById(info.groupId)?.remove();
-  document.getElementById(info.videoElId)?.remove();
+  const stream = vrState.streams[streamIndex];
+  
+  const vrVideoEl = document.getElementById(stream.videoElId);
+  vrVideoEl?.remove();
 
-  vrState.videoMap.delete(publicationId);
-  layoutVrScreens();
+  const groupEl = document.getElementById(stream.groupId);
+  groupEl?.remove();
+
+  vrState.streams.splice(streamIndex, 1);
+  
+  // Adjust current index if needed
+  if (vrState.streams.length === 0) {
+    vrState.currentStreamIndex = 0;
+  } else if (vrState.currentStreamIndex >= vrState.streams.length) {
+    vrState.currentStreamIndex = vrState.streams.length - 1;
+  } else if (streamIndex <= vrState.currentStreamIndex && vrState.currentStreamIndex > 0) {
+    vrState.currentStreamIndex--;
+  }
+  
+  updateVrStreamDisplay();
+  
+  // Remove from debug info
+  debugState.streamInfo.delete(publicationId);
+  if (debugState.enabled) {
+    updateDebugStreamInfo();
+  }
+  
+  console.log('Removed stream from VR:', publicationId, 'Remaining:', vrState.streams.length);
 }
 
 // ------------------------------
-// SkyWay session state
+// State
 // ------------------------------
 let context = null;
 let room = null;
@@ -309,56 +666,44 @@ let isMuted = false;
 
 const subscribed = new Set();
 
-// ------------------------------
-// Helpers (2D UI)
-// ------------------------------
-function clearRemoteUi() {
-  el.buttonArea.replaceChildren();
-  el.remoteArea.replaceChildren();
-  subscribed.clear();
-}
-
-function makeRemoteCard(titleText) {
+function makeRemoteCard(title) {
   const card = document.createElement("div");
   card.className = "remote-card";
 
-  const title = document.createElement("div");
-  title.className = "remote-title";
-  title.textContent = titleText;
+  const titleEl = document.createElement("div");
+  titleEl.className = "remote-title";
+  titleEl.textContent = title;
+  card.appendChild(titleEl);
 
   const mediaWrap = document.createElement("div");
   mediaWrap.className = "remote-media";
-
-  card.appendChild(title);
   card.appendChild(mediaWrap);
+
   return { card, mediaWrap };
 }
 
-function ensureSubscribeButton(publication, meId) {
-  if (publication.publisher?.id === meId) return;
+function clearRemoteUi() {
+  el.remoteArea.replaceChildren();
+  el.buttonArea.replaceChildren();
+  subscribed.clear();
+}
 
-  const id = `subscribe-button-${publication.id}`;
-  if (document.getElementById(id)) return;
+function ensureSubscribeButton(publication, myId) {
+  if (publication.publisher.id === myId) return;
+  if (document.getElementById(`subscribe-button-${publication.id}`)) return;
 
   const btn = document.createElement("button");
+  btn.id = `subscribe-button-${publication.id}`;
   btn.className = "btn small";
-  btn.id = id;
+  btn.textContent = `${publication.publisher.id} / ${publication.contentType}`;
 
-  const label = `${publication.publisher.id} / ${publication.contentType}`;
-  btn.textContent = subscribed.has(publication.id) ? `✅ ${label}` : `Subscribe: ${label}`;
-
-  btn.onclick = async () => {
-    await subscribePublication(publication);
-    btn.textContent = `✅ ${label}`;
-  };
-
+  btn.onclick = () => subscribePublication(publication);
   el.buttonArea.appendChild(btn);
 }
 
 async function subscribePublication(publication) {
   if (!me) return;
   if (subscribed.has(publication.id)) return;
-  if (publication.publisher?.id === me.id) return;
 
   try {
     const { stream } = await me.subscribe(publication.id);
@@ -392,7 +737,7 @@ async function subscribePublication(publication) {
     if (stream.track.kind === "video") {
       mediaEl.play().catch(() => {});
       try {
-        addOrUpdateVideoToVR(publication.id, mediaEl);
+        addOrUpdateVideoToVR(publication.id, mediaEl, publication.publisher.id);
       } catch (e) {
         console.warn("VR attach failed (non-fatal):", e);
       }
@@ -587,13 +932,19 @@ el.join.onclick = async () => {
         clearRemoteUi();
 
         // VRリセット
-        [...vrState.videoMap.keys()].forEach(removeVideoFromVR);
+        [...vrState.streams.map(s => s.publicationId)].forEach(removeVideoFromVR);
         if (el.mediaHub) el.mediaHub.replaceChildren();
 
         el.localVideo.pause();
         el.localVideo.removeAttribute("src");
         el.localVideo.load();
         el.muteAv.textContent = "映像/音声 OFF";
+        
+        // Clear debug info
+        debugState.streamInfo.clear();
+        if (debugState.enabled) {
+          updateDebugStreamInfo();
+        }
       }
     };
 
@@ -628,3 +979,13 @@ setConnState("disconnected");
 setUiJoined(false);
 el.clearRemote.onclick = () => el.remoteArea.replaceChildren();
 setVrEnabled(false);
+
+// Setup VR navigation after A-Frame is loaded
+window.addEventListener('load', () => {
+  const scene = document.querySelector('#vr-scene');
+  if (scene) {
+    scene.addEventListener('loaded', () => {
+      setupVrNavButtons();
+    });
+  }
+});
