@@ -1,7 +1,7 @@
 /**
  * a_frame.js
  * A-Frameカスタムコンポーネントとコントローラー管理
- * モード切り替え機能を含む（Oculus Touchのみ対応）
+ * モード切り替え機能、UI表示制御を含む（Oculus Touchのみ対応）
  */
 
 /* global AFRAME, THREE */
@@ -253,6 +253,121 @@ AFRAME.registerComponent('mode-display', {
 });
 
 /**
+ * A-Frameコンポーネント: mode-manager
+ * モードに応じてUIとコントローラーモデルの表示を切り替え
+ */
+AFRAME.registerComponent('mode-manager', {
+  init: function() {
+    this.lastUpdate = 0;
+    this.currentDisplayMode = null;
+    
+    // UI要素の取得
+    this.controlModeUI = document.getElementById("controlModeUI");
+    this.settingsModeUI = document.getElementById("settingsModeUI");
+    
+    // コントローラー要素の取得
+    this.leftController = document.getElementById("leftOculus");
+    this.rightController = document.getElementById("rightOculus");
+    
+    console.log('[MODE MANAGER] Initialized');
+  },
+  
+  tick: function(time) {
+    // 100msごとに更新
+    if (time - this.lastUpdate < 100) return;
+    this.lastUpdate = time;
+
+    // 現在のモードを取得
+    const currentMode = window.appGetCurrentMode ? window.appGetCurrentMode() : 'settings';
+    
+    // モードが変更された場合のみ更新
+    if (this.currentDisplayMode !== currentMode) {
+      this.currentDisplayMode = currentMode;
+      this.updateDisplay(currentMode);
+    }
+  },
+  
+  /**
+   * モードに応じて表示を更新
+   */
+  updateDisplay: function(mode) {
+    console.log(`[MODE MANAGER] Switching display to ${mode} mode`);
+    
+    if (mode === 'settings') {
+      // 設定モード
+      this.showSettingsMode();
+    } else {
+      // 操作モード
+      this.showControlMode();
+    }
+  },
+  
+  /**
+   * 設定モード表示
+   */
+  showSettingsMode: function() {
+    // 設定UIを表示
+    if (this.settingsModeUI) {
+      this.settingsModeUI.setAttribute('visible', true);
+    }
+    
+    // 操作UIを非表示
+    if (this.controlModeUI) {
+      this.controlModeUI.setAttribute('visible', false);
+    }
+    
+    // コントローラーモデルを表示
+    this.showControllerModels();
+    
+    console.log('[MODE MANAGER] Settings UI displayed, controller models shown');
+  },
+  
+  /**
+   * 操作モード表示
+   */
+  showControlMode: function() {
+    // 設定UIを非表示
+    if (this.settingsModeUI) {
+      this.settingsModeUI.setAttribute('visible', false);
+    }
+    
+    // 操作UIを表示
+    if (this.controlModeUI) {
+      this.controlModeUI.setAttribute('visible', true);
+    }
+    
+    // コントローラーモデルを非表示
+    this.hideControllerModels();
+    
+    console.log('[MODE MANAGER] Control UI displayed, controller models hidden');
+  },
+  
+  /**
+   * コントローラーモデルを表示
+   */
+  showControllerModels: function() {
+    if (this.leftController) {
+      this.leftController.setAttribute('oculus-touch-controls', 'model', true);
+    }
+    if (this.rightController) {
+      this.rightController.setAttribute('oculus-touch-controls', 'model', true);
+    }
+  },
+  
+  /**
+   * コントローラーモデルを非表示
+   */
+  hideControllerModels: function() {
+    if (this.leftController) {
+      this.leftController.setAttribute('oculus-touch-controls', 'model', false);
+    }
+    if (this.rightController) {
+      this.rightController.setAttribute('oculus-touch-controls', 'model', false);
+    }
+  }
+});
+
+/**
  * キーボードのXキーでモード切り替え
  */
 function setupKeyboardModeToggle() {
@@ -282,13 +397,13 @@ function setupKeyboardModeToggle() {
 
 /**
  * A-Frameコンポーネントの初期化
- * カメラにcontroller-monitorとmode-displayをアタッチ
  */
 function initializeAFrameComponents() {
   const camera = document.getElementById('camera');
   if (camera) {
     camera.setAttribute('controller-monitor', '');
     camera.setAttribute('mode-display', '');
+    camera.setAttribute('mode-manager', '');
   }
   
   // キーボードのモード切り替えを設定

@@ -8,8 +8,11 @@
   <!-- A-Frame -->
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
 
-  <!-- A-Frame Extras (コントローラー表示用) -->
+  <!-- A-Frame Extras -->
   <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
+
+  <!-- A-Frame GUI -->
+  <script src="https://cdn.jsdelivr.net/gh/rdub80/aframe-gui@master/dist/aframe-gui.min.js"></script>
 
   <!-- SkyWay SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@skyway-sdk/room/dist/skyway_room-latest.js"></script>
@@ -26,49 +29,206 @@
     <a-entity id="camera-rig" position="0 0 0">
       <!-- カメラ -->
       <a-entity id="camera" camera position="0 1.6 0" look-controls rotation-reader>
-        <!-- 映像スクリーン -->
-        <a-plane id="screen"
-                 position="0 -0.2 -2"
-                 width="3.2"
-                 height="1.8"
-                 material="shader: flat; color: #111">
-        </a-plane>
+        
+        <!-- ========== 操作モード用UI ========== -->
+        <a-entity id="controlModeUI">
+          <!-- 映像スクリーン -->
+          <a-plane id="screen"
+                   position="0 -0.2 -2"
+                   width="3.2"
+                   height="1.8"
+                   material="shader: flat; color: #111">
+          </a-plane>
 
-        <!-- HUD（右側） -->
-        <a-text id="hudText"
-                value="loading..."
-                position="0.8 0 -2"
-                width="2.5"
-                color="#FFFFFF"
-                align="left">
-        </a-text>
+          <!-- HUD（右側） -->
+          <a-text id="hudText"
+                  value="loading..."
+                  position="0.8 0 -2"
+                  width="2.5"
+                  color="#FFFFFF"
+                  align="left">
+          </a-text>
 
-        <!-- モード表示（中央） -->
-        <a-text id="modeText"
-                value="MODE: CONTROL"
-                position="0 0.4 -2"
-                width="2.5"
-                color="#00FF00"
-                align="center">
-        </a-text>
+          <!-- モード表示（中央） -->
+          <a-text id="modeText"
+                  value="MODE: SETTINGS"
+                  position="0 0.4 -2"
+                  width="2.5"
+                  color="#FFFF00"
+                  align="center">
+          </a-text>
 
-        <!-- コントローラー情報表示（左側） -->
-        <a-text id="controllerInfo"
-                value="Controllers\nInitializing..."
-                position="-1.5 0 -2"
-                width="2.5"
-                color="#00FF00"
-                align="left">
-        </a-text>
+          <!-- コントローラー情報表示（左側） -->
+          <a-text id="controllerInfo"
+                  value="Controllers\nInitializing..."
+                  position="-1.5 0 -2"
+                  width="2.5"
+                  color="#00FF00"
+                  align="left">
+          </a-text>
+        </a-entity>
+
+        <!-- ========== 設定モード用UI ========== -->
+        <a-entity id="settingsModeUI" position="0 0.2 -1.5">
+          <!-- 背景パネル -->
+          <a-gui-flex-container 
+            id="settingsPanel"
+            flex-direction="column" 
+            justify-content="center" 
+            align-items="normal" 
+            component-padding="0.05" 
+            opacity="0.8" 
+            width="2.5" 
+            height="2.0"
+            panel-color="#444444"
+            panel-rounded="0.05"
+            position="0 0 0">
+
+            <!-- タイトル -->
+            <a-gui-label 
+              width="2.4" 
+              height="0.15"
+              value="VR SETTINGS"
+              font-family="Roboto"
+              font-size="0.15"
+              font-color="#FFFFFF"
+              background-color="#333333"
+              margin="0 0 0.05 0">
+            </a-gui-label>
+
+            <!-- パス入力 -->
+            <a-gui-label 
+              width="2.4" 
+              height="0.1"
+              value="Pass"
+              font-size="0.08"
+              font-color="#FFFFFF"
+              background-color="transparent"
+              margin="0 0 0.02 0">
+            </a-gui-label>
+
+            <a-gui-input
+              id="passInput"
+              width="2.4"
+              height="0.15"
+              value=""
+              font-size="0.08"
+              font-color="#000000"
+              background-color="#FFFFFF"
+              margin="0 0 0.1 0">
+            </a-gui-input>
+
+            <!-- Room選択 -->
+            <a-gui-label 
+              width="2.4" 
+              height="0.1"
+              value="Room Select"
+              font-size="0.08"
+              font-color="#FFFFFF"
+              background-color="transparent"
+              margin="0 0 0.02 0">
+            </a-gui-label>
+
+            <!-- Room選択ボタン群 -->
+            <a-entity>
+              <a-gui-button
+                id="room1Button"
+                width="0.75"
+                height="0.15"
+                value="room1"
+                font-size="0.08"
+                margin="0 0.05 0.1 0"
+                background-color="#4CAF50"
+                hover-color="#66BB6A"
+                active-color="#388E3C">
+              </a-gui-button>
+
+              <a-gui-button
+                id="room2Button"
+                width="0.75"
+                height="0.15"
+                value="room2"
+                font-size="0.08"
+                margin="0 0.05 0.1 0"
+                background-color="#4CAF50"
+                hover-color="#66BB6A"
+                active-color="#388E3C">
+              </a-gui-button>
+
+              <a-gui-button
+                id="room3Button"
+                width="0.75"
+                height="0.15"
+                value="room3"
+                font-size="0.08"
+                margin="0 0 0.1 0"
+                background-color="#4CAF50"
+                hover-color="#66BB6A"
+                active-color="#388E3C">
+              </a-gui-button>
+            </a-entity>
+
+            <!-- デバッグモード切り替え -->
+            <a-gui-label 
+              width="2.4" 
+              height="0.1"
+              value="Debug Mode"
+              font-size="0.08"
+              font-color="#FFFFFF"
+              background-color="transparent"
+              margin="0 0 0.02 0">
+            </a-gui-label>
+
+            <a-gui-toggle
+              id="debugToggle"
+              width="0.3"
+              height="0.15"
+              font-size="0.08"
+              margin="0 0 0.1 0"
+              background-color="#CCCCCC"
+              toggle-color="#2196F3"
+              active="false">
+            </a-gui-toggle>
+
+            <!-- 接続/切断ボタン -->
+            <a-entity>
+              <a-gui-button
+                id="connectButton"
+                width="1.15"
+                height="0.2"
+                value="Connect"
+                font-size="0.1"
+                margin="0 0.1 0 0"
+                background-color="#2196F3"
+                hover-color="#42A5F5"
+                active-color="#1976D2">
+              </a-gui-button>
+
+              <a-gui-button
+                id="disconnectButton"
+                width="1.15"
+                height="0.2"
+                value="Disconnect"
+                font-size="0.1"
+                margin="0 0 0 0"
+                background-color="#F44336"
+                hover-color="#EF5350"
+                active-color="#C62828">
+              </a-gui-button>
+            </a-entity>
+
+          </a-gui-flex-container>
+        </a-entity>
+
       </a-entity>
 
       <!-- 6DoF コントローラー: Oculus Touch -->
       <a-entity id="leftOculus" 
-                oculus-touch-controls="hand: left" 
+                oculus-touch-controls="hand: left; model: true" 
                 controller-listener="hand: left">
       </a-entity>
       <a-entity id="rightOculus" 
-                oculus-touch-controls="hand: right" 
+                oculus-touch-controls="hand: right; model: true" 
                 controller-listener="hand: right">
       </a-entity>
     </a-entity>

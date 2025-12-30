@@ -19,7 +19,7 @@ let skyway = null;
  * アプリケーション状態管理
  */
 const appState = {
-  currentMode: 'control', // 'settings' or 'control'
+  currentMode: 'settings', // 初期モードを'settings'に変更
   modes: {
     SETTINGS: 'settings',
     CONTROL: 'control'
