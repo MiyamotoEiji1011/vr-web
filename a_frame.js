@@ -1,7 +1,7 @@
 /**
  * a_frame.js
  * A-Frameカスタムコンポーネントとコントローラー管理
- * モード切り替え機能、VRコントローラーでのUI操作を含む（Oculus Touchのみ対応）
+ * モード切り替え機能、VRコントローラーでのUI操作、仮想キーボードを含む（Oculus Touchのみ対応）
  */
 
 /* global AFRAME, THREE */
@@ -37,7 +37,9 @@ window.controllerStates = {
 window.uiState = {
   selectedRoom: 'room1',
   debugMode: false,
-  connected: false
+  connected: false,
+  keyboardVisible: false,
+  inputValue: ''
 };
 
 // モード切り替え状態管理（エッジ検出用）
@@ -92,6 +94,105 @@ AFRAME.registerComponent('controller-cursor', {
       this.hoveredEl.emit('click');
     } else {
       console.log('[CONTROLLER CURSOR] No element hovered');
+      
+      // キーボードが表示されている場合、何もホバーしていなければキーボードを閉じる
+      if (window.uiState.keyboardVisible) {
+        console.log('[CONTROLLER CURSOR] Closing keyboard (clicked outside)');
+        window.hideKeyboard();
+      }
+    }
+  }
+});
+
+/**
+ * A-Frameコンポーネント: ui-input
+ * 入力フィールド機能
+ */
+AFRAME.registerComponent('ui-input', {
+  init: function() {
+    this.originalColor = this.el.getAttribute('color');
+    this.hoverColor = '#E3F2FD'; // ホバー時の色
+    this.isHovered = false;
+    
+    // レイキャストのホバーイベント
+    this.el.addEventListener('raycaster-intersected', () => {
+      if (!this.isHovered) {
+        this.isHovered = true;
+        this.el.setAttribute('color', this.hoverColor);
+        console.log('[UI INPUT] Hover:', this.el.id);
+      }
+    });
+    
+    this.el.addEventListener('raycaster-intersected-cleared', () => {
+      if (this.isHovered) {
+        this.isHovered = false;
+        this.el.setAttribute('color', this.originalColor);
+        console.log('[UI INPUT] Hover cleared:', this.el.id);
+      }
+    });
+    
+    // クリックイベント
+    this.el.addEventListener('click', () => {
+      this.handleClick();
+    });
+    
+    console.log('[UI INPUT] Initialized:', this.el.id);
+  },
+  
+  handleClick: function() {
+    const id = this.el.id;
+    console.log(`[UI INPUT] ${id} clicked`);
+    
+    // キーボードを表示
+    if (window.showKeyboard) {
+      window.showKeyboard();
+    }
+  }
+});
+
+/**
+ * A-Frameコンポーネント: ui-key
+ * 仮想キーボードのキー機能
+ */
+AFRAME.registerComponent('ui-key', {
+  schema: {
+    key: { type: 'string', default: '' }
+  },
+  
+  init: function() {
+    this.originalColor = this.el.getAttribute('color');
+    this.hoverColor = '#777777'; // ホバー時の色
+    this.isHovered = false;
+    
+    // レイキャストのホバーイベント
+    this.el.addEventListener('raycaster-intersected', () => {
+      if (!this.isHovered) {
+        this.isHovered = true;
+        this.el.setAttribute('color', this.hoverColor);
+      }
+    });
+    
+    this.el.addEventListener('raycaster-intersected-cleared', () => {
+      if (this.isHovered) {
+        this.isHovered = false;
+        this.el.setAttribute('color', this.originalColor);
+      }
+    });
+    
+    // クリックイベント
+    this.el.addEventListener('click', () => {
+      this.handleClick();
+    });
+    
+    console.log('[UI KEY] Initialized:', this.data.key);
+  },
+  
+  handleClick: function() {
+    const key = this.data.key;
+    console.log(`[UI KEY] ${key} clicked`);
+    
+    if (window.handleKeyPress) {
+      window.handleKeyPress(key);
     }
   }
 });
@@ -134,6 +235,11 @@ AFRAME.registerComponent('ui-button', {
   handleClick: function() {
     const id = this.el.id;
     console.log(`[UI BUTTON] ${id} clicked`);
+    
+    // キーボードが表示されている場合は閉じる
+    if (window.uiState.keyboardVisible) {
+      window.hideKeyboard();
+    }
     
     // ボタンIDに応じた処理
     if (id.startsWith('room')) {
@@ -203,6 +309,11 @@ AFRAME.registerComponent('ui-toggle', {
   toggle: function() {
     this.isOn = !this.isOn;
     
+    // キーボードが表示されている場合は閉じる
+    if (window.uiState.keyboardVisible) {
+      window.hideKeyboard();
+    }
+    
     // ハンドル位置を変更
     if (this.handle) {
       const newX = this.isOn ? 0.1 : -0.1;
@@ -219,6 +330,62 @@ AFRAME.registerComponent('ui-toggle', {
     console.log(`[UI TOGGLE] Debug mode: ${this.isOn ? 'ON' : 'OFF'}`);
   }
 });
+
+/**
+ * グローバル関数: キーボード表示
+ */
+window.showKeyboard = function() {
+  const keyboard = document.getElementById('virtualKeyboard');
+  if (keyboard) {
+    keyboard.setAttribute('visible', true);
+    window.uiState.keyboardVisible = true;
+    console.log('[KEYBOARD] Keyboard shown');
+  }
+};
+
+/**
+ * グローバル関数: キーボード非表示
+ */
+window.hideKeyboard = function() {
+  const keyboard = document.getElementById('virtualKeyboard');
+  if (keyboard) {
+    keyboard.setAttribute('visible', false);
+    window.uiState.keyboardVisible = false;
+    console.log('[KEYBOARD] Keyboard hidden');
+  }
+};
+
+/**
+ * グローバル関数: キー入力処理
+ */
+window.handleKeyPress = function(key) {
+  const inputText = document.getElementById('passInputText');
+  
+  if (key === 'Backspace') {
+    // 最後の文字を削除
+    if (window.uiState.inputValue.length > 0) {
+      window.uiState.inputValue = window.uiState.inputValue.slice(0, -1);
+    }
+  } else if (key === 'Enter') {
+    // 入力確定、キーボードを閉じる
+    console.log('[KEYBOARD] Input confirmed:', window.uiState.inputValue);
+    window.hideKeyboard();
+    return;
+  } else if (key === 'Space') {
+    // スペース追加
+    window.uiState.inputValue += ' ';
+  } else {
+    // 文字追加
+    window.uiState.inputValue += key;
+  }
+  
+  // 表示を更新
+  if (inputText) {
+    inputText.setAttribute('value', window.uiState.inputValue);
+  }
+  
+  console.log('[KEYBOARD] Current input:', window.uiState.inputValue);
+};
 
 /**
  * A-Frameコンポーネント: rotation-reader
@@ -343,6 +510,11 @@ AFRAME.registerComponent('controller-listener', {
    * モード切り替えハンドラー
    */
   handleModeToggle: function() {
+    // キーボードが表示されている場合は閉じる
+    if (window.uiState.keyboardVisible) {
+      window.hideKeyboard();
+    }
+    
     if (window.appToggleMode) {
       window.appToggleMode();
     } else {
@@ -473,6 +645,11 @@ AFRAME.registerComponent('mode-manager', {
    */
   updateDisplay: function(mode) {
     console.log(`[MODE MANAGER] Switching display to ${mode} mode`);
+    
+    // キーボードが表示されている場合は閉じる
+    if (window.uiState.keyboardVisible) {
+      window.hideKeyboard();
+    }
     
     if (mode === 'settings') {
       // 設定モード
