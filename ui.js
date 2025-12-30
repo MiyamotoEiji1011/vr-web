@@ -1,7 +1,7 @@
 /**
  * ui.js
  * UI関連のA-Frameコンポーネントとロジック
- * 仮想キーボード、ボタン、トグル、入力フィールド、スライダー、スクロールなど
+ * 仮想キーボード、ボタン、トグル、入力フィールド
  */
 
 /* global AFRAME */
@@ -15,199 +15,14 @@ window.uiState = {
   currentInputField: null,  // 現在編集中のフィールド
   
   // 入力値
-  idValue: 'your-app-id',
-  passkeyValue: 'your-secret-key',
+  idValue: 'app-id',
+  passkeyValue: 'secret-key',
   
   // 接続情報
   connectionId: 'none',
   resolution: '1920x1080',
-  fps: '30',
-  
-  // 操作設定
-  videoPositionX: 0.0,
-  videoPositionY: 0.0,
-  videoPositionZ: 0.0,
-  joystickDeadzone: 0.2,
-  
-  // スクロール
-  scrollOffset: 0,
-  scrollStep: 0.2
+  fps: '30'
 };
-
-/**
- * A-Frameコンポーネント: scroll-container
- * スクロール可能なコンテナ
- */
-AFRAME.registerComponent('scroll-container', {
-  init: function() {
-    this.scrollOffset = 0;
-    console.log('[SCROLL CONTAINER] Initialized');
-  },
-  
-  scroll: function(direction) {
-    const step = window.uiState.scrollStep;
-    
-    if (direction === 'up') {
-      this.scrollOffset = Math.min(this.scrollOffset + step, 1.5);
-    } else if (direction === 'down') {
-      this.scrollOffset = Math.max(this.scrollOffset - step, 0);
-    }
-    
-    // コンテンツをスクロール
-    const currentPos = this.el.getAttribute('position');
-    this.el.setAttribute('position', {
-      x: currentPos.x,
-      y: this.scrollOffset,
-      z: currentPos.z
-    });
-    
-    window.uiState.scrollOffset = this.scrollOffset;
-    console.log('[SCROLL] Offset:', this.scrollOffset.toFixed(2));
-  }
-});
-
-/**
- * A-Frameコンポーネント: ui-scroll
- * スクロールボタン
- */
-AFRAME.registerComponent('ui-scroll', {
-  schema: {
-    direction: { type: 'string', default: 'up' }
-  },
-  
-  init: function() {
-    this.originalColor = this.el.getAttribute('color');
-    this.hoverColor = '#888888';
-    this.isHovered = false;
-    
-    // レイキャストのホバーイベント
-    this.el.addEventListener('raycaster-intersected', () => {
-      if (!this.isHovered) {
-        this.isHovered = true;
-        this.el.setAttribute('color', this.hoverColor);
-      }
-    });
-    
-    this.el.addEventListener('raycaster-intersected-cleared', () => {
-      if (this.isHovered) {
-        this.isHovered = false;
-        this.el.setAttribute('color', this.originalColor);
-      }
-    });
-    
-    // クリックイベント
-    this.el.addEventListener('click', () => {
-      this.handleClick();
-    });
-    
-    console.log('[UI SCROLL] Initialized:', this.data.direction);
-  },
-  
-  handleClick: function() {
-    const scrollContainer = document.getElementById('scrollableContent');
-    if (scrollContainer && scrollContainer.components['scroll-container']) {
-      scrollContainer.components['scroll-container'].scroll(this.data.direction);
-    }
-  }
-});
-
-/**
- * A-Frameコンポーネント: ui-slider
- * スライダー機能
- */
-AFRAME.registerComponent('ui-slider', {
-  schema: {
-    min: { type: 'number', default: 0 },
-    max: { type: 'number', default: 1 },
-    value: { type: 'number', default: 0 },
-    axis: { type: 'string', default: 'x' }  // x, y, z, deadzone
-  },
-  
-  init: function() {
-    this.isDragging = false;
-    this.sliderWidth = 1.2;  // スライダーの幅
-    this.originalColor = this.el.getAttribute('color');
-    this.hoverColor = '#42A5F5';
-    this.isHovered = false;
-    
-    // 初期位置を設定
-    this.updatePosition(this.data.value);
-    
-    // レイキャストのホバーイベント
-    this.el.addEventListener('raycaster-intersected', () => {
-      if (!this.isHovered) {
-        this.isHovered = true;
-        this.el.setAttribute('color', this.hoverColor);
-      }
-    });
-    
-    this.el.addEventListener('raycaster-intersected-cleared', () => {
-      if (this.isHovered) {
-        this.isHovered = false;
-        this.el.setAttribute('color', this.originalColor);
-      }
-    });
-    
-    // クリックイベント（今回は簡易実装、値の増減のみ）
-    this.el.addEventListener('click', () => {
-      this.handleClick();
-    });
-    
-    console.log('[UI SLIDER] Initialized:', this.data.axis, 'value:', this.data.value);
-  },
-  
-  handleClick: function() {
-    // クリックで値を0.5増やす（最大値で折り返し）
-    let newValue = this.data.value + 0.5;
-    if (newValue > this.data.max) {
-      newValue = this.data.min;
-    }
-    
-    this.data.value = newValue;
-    this.updatePosition(newValue);
-    this.updateState(newValue);
-    
-    console.log(`[UI SLIDER] ${this.data.axis} clicked, new value:`, newValue.toFixed(1));
-  },
-  
-  updatePosition: function(value) {
-    // 値をスライダー位置に変換
-    const range = this.data.max - this.data.min;
-    const normalizedValue = (value - this.data.min) / range;  // 0-1
-    const offset = (normalizedValue - 0.5) * this.sliderWidth;  // -0.6 to 0.6
-    
-    const currentPos = this.el.getAttribute('position');
-    this.el.setAttribute('position', {
-      x: 0.2 + offset,  // 中心位置 + オフセット
-      y: currentPos.y,
-      z: currentPos.z
-    });
-  },
-  
-  updateState: function(value) {
-    const axis = this.data.axis;
-    const roundedValue = Math.round(value * 10) / 10;
-    
-    // グローバル状態を更新
-    if (axis === 'x') {
-      window.uiState.videoPositionX = roundedValue;
-      const textEl = document.getElementById('videoXValue');
-      if (textEl) textEl.setAttribute('value', roundedValue.toFixed(1));
-    } else if (axis === 'y') {
-      window.uiState.videoPositionY = roundedValue;
-      const textEl = document.getElementById('videoYValue');
-      if (textEl) textEl.setAttribute('value', roundedValue.toFixed(1));
-    } else if (axis === 'z') {
-      window.uiState.videoPositionZ = roundedValue;
-      const textEl = document.getElementById('videoZValue');
-      if (textEl) textEl.setAttribute('value', roundedValue.toFixed(1));
-    } else if (axis === 'deadzone') {
-      window.uiState.joystickDeadzone = roundedValue;
-      const textEl = document.getElementById('deadzoneValue');
-      if (textEl) textEl.setAttribute('value', roundedValue.toFixed(1));
-    }
-  }
-});
 
 /**
  * A-Frameコンポーネント: ui-input
@@ -273,7 +88,7 @@ AFRAME.registerComponent('ui-key', {
   
   init: function() {
     this.originalColor = this.el.getAttribute('color');
-    this.hoverColor = '#777777';
+    this.hoverColor = '#666666';
     this.isHovered = false;
     
     // レイキャストのホバーイベント
@@ -316,7 +131,19 @@ AFRAME.registerComponent('ui-key', {
 AFRAME.registerComponent('ui-button', {
   init: function() {
     this.originalColor = this.el.getAttribute('color');
-    this.hoverColor = '#66BB6A';
+    
+    // ボタンの種類に応じてホバー色を設定
+    const id = this.el.id;
+    if (id.startsWith('room')) {
+      this.hoverColor = '#2ECC71';  // 緑系
+    } else if (id === 'connectButton') {
+      this.hoverColor = '#5DADE2';  // 青系
+    } else if (id === 'disconnectButton') {
+      this.hoverColor = '#EC7063';  // 赤系
+    } else {
+      this.hoverColor = '#5DADE2';  // デフォルト
+    }
+    
     this.isHovered = false;
     
     // レイキャストのホバーイベント
@@ -364,9 +191,11 @@ AFRAME.registerComponent('ui-button', {
     } else if (id === 'connectButton') {
       console.log('[UI] Connect button clicked');
       window.uiState.connected = true;
+      // TODO: 実際の接続処理
     } else if (id === 'disconnectButton') {
       console.log('[UI] Disconnect button clicked');
       window.uiState.connected = false;
+      // TODO: 実際の切断処理
     }
   },
   
@@ -375,13 +204,13 @@ AFRAME.registerComponent('ui-button', {
     ['room1Button', 'room2Button', 'room3Button'].forEach(btnId => {
       const btn = document.getElementById(btnId);
       if (btn && btn.id !== this.el.id) {
-        btn.setAttribute('color', '#4CAF50');
+        btn.setAttribute('color', '#27AE60');
       }
     });
     
     // 選択されたボタンを明るくする
-    this.originalColor = '#66BB6A';
-    this.el.setAttribute('color', '#66BB6A');
+    this.originalColor = '#2ECC71';
+    this.el.setAttribute('color', '#2ECC71');
   }
 });
 
@@ -428,12 +257,12 @@ AFRAME.registerComponent('ui-toggle', {
     
     // ハンドル位置を変更
     if (this.handle) {
-      const newX = this.isOn ? 0.3 : 0.1;
+      const newX = this.isOn ? 0.51 : 0.29;
       this.handle.setAttribute('position', `${newX} 0 0.01`);
     }
     
     // 背景色を変更
-    const newColor = this.isOn ? '#2196F3' : '#CCCCCC';
+    const newColor = this.isOn ? '#3498DB' : '#95A5A6';
     this.el.setAttribute('color', newColor);
     
     // 状態を更新
@@ -481,7 +310,7 @@ window.hideKeyboard = function() {
   
   // Raycasterのターゲットを元に戻す
   if (rightController && rightController.components.raycaster) {
-    rightController.setAttribute('raycaster', 'objects', '.ui-button, .ui-toggle, .ui-input, .ui-scroll');
+    rightController.setAttribute('raycaster', 'objects', '.ui-button, .ui-toggle, .ui-input');
     console.log('[KEYBOARD] Raycaster restored to normal UI elements');
   }
 };
@@ -540,10 +369,37 @@ window.handleKeyPress = function(key) {
   console.log('[KEYBOARD] Current input:', currentField, currentValue);
 };
 
+/**
+ * グローバル関数: 接続情報を更新
+ */
+window.updateConnectionInfo = function(connectionId, resolution, fps) {
+  // 状態を更新
+  if (connectionId !== undefined) {
+    window.uiState.connectionId = connectionId;
+    const el = document.getElementById('connectionIdText');
+    if (el) el.setAttribute('value', connectionId);
+  }
+  
+  if (resolution !== undefined) {
+    window.uiState.resolution = resolution;
+    const el = document.getElementById('resolutionText');
+    if (el) el.setAttribute('value', resolution);
+  }
+  
+  if (fps !== undefined) {
+    window.uiState.fps = fps;
+    const el = document.getElementById('fpsText');
+    if (el) el.setAttribute('value', fps);
+  }
+  
+  console.log('[UI] Connection info updated:', window.uiState.connectionId, window.uiState.resolution, window.uiState.fps);
+};
+
 // グローバルに公開
 window.uiState = window.uiState;
 window.showKeyboard = window.showKeyboard;
 window.hideKeyboard = window.hideKeyboard;
 window.handleKeyPress = window.handleKeyPress;
+window.updateConnectionInfo = window.updateConnectionInfo;
 
 console.log('[UI] UI components and functions loaded');

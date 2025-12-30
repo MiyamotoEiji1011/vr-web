@@ -79,7 +79,7 @@
       <a-entity id="rightOculus" 
                 oculus-touch-controls="hand: right; model: true" 
                 controller-listener="hand: right"
-                raycaster="objects: .ui-button, .ui-toggle, .ui-input, .ui-scroll; origin: 0 0 0; direction: 0 0 -1; far: 10; showLine: true; lineColor: red; lineOpacity: 0.5"
+                raycaster="objects: .ui-button, .ui-toggle, .ui-input; origin: 0 0 0; direction: 0 0 -1; far: 10; showLine: true; lineColor: red; lineOpacity: 0.5"
                 controller-cursor>
       </a-entity>
     </a-entity>
@@ -87,667 +87,522 @@
     <!-- ========== 設定モード用UI（固定位置、カメラ追従なし） ========== -->
     <a-entity id="settingsModeUI" position="0 1.6 -3">
       
-      <!-- VR SETTINGS（左側、スクロール機能付き） -->
-      <a-entity id="settingsPanel" position="-1.5 0 0">
+      <!-- ========== 左パネル: SkyWay設定 ========== -->
+      <a-entity id="skywayPanel" position="-2 0.3 0">
         <!-- 背景パネル -->
         <a-plane 
-          width="2.6" 
-          height="2.8"
-          color="#444444"
-          opacity="0.85"
-          position="0 0 0">
-        </a-plane>
-
-        <!-- タイトル -->
-        <a-text 
-          value="VR SETTINGS"
-          position="0 1.3 0.01"
-          width="2.4"
-          align="center"
-          color="#FFFFFF">
-        </a-text>
-
-        <!-- スクロールアップボタン -->
-        <a-plane 
-          id="scrollUpButton"
-          class="ui-scroll"
-          width="2.4" 
-          height="0.15"
-          color="#666666"
-          position="0 1.1 0.01"
-          ui-scroll="direction: up">
-        </a-plane>
-        <a-text 
-          value="▲ SCROLL UP"
-          position="0 1.1 0.02"
-          width="2.2"
-          align="center"
-          color="#FFFFFF">
-        </a-text>
-
-        <!-- スクロール可能エリア -->
-        <a-entity id="scrollableContent" position="0 0 0.01" scroll-container>
-          
-          <!-- === SkyWay設定セクション === -->
-          <a-entity position="0 0.85 0">
-            <a-text 
-              value="=== SkyWay ==="
-              position="0 0 0"
-              width="2.2"
-              align="center"
-              color="#FFC107">
-            </a-text>
-          </a-entity>
-
-          <!-- ID入力フィールド -->
-          <a-entity position="0 0.6 0">
-            <a-text 
-              value="ID"
-              position="-1.1 0 0"
-              width="2.2"
-              align="left"
-              color="#FFFFFF">
-            </a-text>
-            <a-plane 
-              id="idInputField"
-              class="ui-input"
-              width="1.6" 
-              height="0.15"
-              color="#FFFFFF"
-              position="0.2 0 0"
-              ui-input="field: id">
-            </a-plane>
-            <a-text 
-              id="idInputText"
-              value="your-app-id"
-              position="-0.58 0 0.01"
-              width="2.0"
-              align="left"
-              color="#000000">
-            </a-text>
-          </a-entity>
-
-          <!-- PassKey入力フィールド -->
-          <a-entity position="0 0.4 0">
-            <a-text 
-              value="PassKey"
-              position="-1.1 0 0"
-              width="2.2"
-              align="left"
-              color="#FFFFFF">
-            </a-text>
-            <a-plane 
-              id="passkeyInputField"
-              class="ui-input"
-              width="1.6" 
-              height="0.15"
-              color="#FFFFFF"
-              position="0.2 0 0"
-              ui-input="field: passkey">
-            </a-plane>
-            <a-text 
-              id="passkeyInputText"
-              value="your-secret-key"
-              position="-0.58 0 0.01"
-              width="2.0"
-              align="left"
-              color="#000000">
-            </a-text>
-          </a-entity>
-
-          <!-- Room Select -->
-          <a-entity position="0 0.2 0">
-            <a-text 
-              value="Room"
-              position="-1.1 0 0"
-              width="2.2"
-              align="left"
-              color="#FFFFFF">
-            </a-text>
-            
-            <a-entity position="-0.55 0 0">
-              <!-- room1 -->
-              <a-plane 
-                id="room1Button"
-                class="ui-button"
-                width="0.5" 
-                height="0.15"
-                color="#4CAF50"
-                position="0 0 0"
-                ui-button>
-              </a-plane>
-              <a-text 
-                value="room1"
-                position="0 0 0.01"
-                width="1.6"
-                align="center"
-                color="#FFFFFF">
-              </a-text>
-
-              <!-- room2 -->
-              <a-plane 
-                id="room2Button"
-                class="ui-button"
-                width="0.5" 
-                height="0.15"
-                color="#4CAF50"
-                position="0.6 0 0"
-                ui-button>
-              </a-plane>
-              <a-text 
-                value="room2"
-                position="0.6 0 0.01"
-                width="1.6"
-                align="center"
-                color="#FFFFFF">
-              </a-text>
-
-              <!-- room3 -->
-              <a-plane 
-                id="room3Button"
-                class="ui-button"
-                width="0.5" 
-                height="0.15"
-                color="#4CAF50"
-                position="1.2 0 0"
-                ui-button>
-              </a-plane>
-              <a-text 
-                value="room3"
-                position="1.2 0 0.01"
-                width="1.6"
-                align="center"
-                color="#FFFFFF">
-              </a-text>
-            </a-entity>
-          </a-entity>
-
-          <!-- 接続ID -->
-          <a-entity position="0 0 0">
-            <a-text 
-              value="Connection ID"
-              position="-1.1 0 0"
-              width="2.2"
-              align="left"
-              color="#FFFFFF">
-            </a-text>
-            <a-text 
-              id="connectionIdText"
-              value="none"
-              position="0.2 0 0"
-              width="2.0"
-              align="left"
-              color="#00FF00">
-            </a-text>
-          </a-entity>
-
-          <!-- === 映像情報セクション === -->
-          <a-entity position="0 -0.25 0">
-            <a-text 
-              value="=== Video Info ==="
-              position="0 0 0"
-              width="2.2"
-              align="center"
-              color="#FFC107">
-            </a-text>
-          </a-entity>
-
-          <!-- 解像度 -->
-          <a-entity position="0 -0.45 0">
-            <a-text 
-              value="Resolution"
-              position="-1.1 0 0"
-              width="2.2"
-              align="left"
-              color="#FFFFFF">
-            </a-text>
-            <a-text 
-              id="resolutionText"
-              value="1920x1080"
-              position="0.2 0 0"
-              width="2.0"
-              align="left"
-              color="#FFFFFF">
-            </a-text>
-          </a-entity>
-
-          <!-- FPS -->
-          <a-entity position="0 -0.65 0">
-            <a-text 
-              value="FPS"
-              position="-1.1 0 0"
-              width="2.2"
-              align="left"
-              color="#FFFFFF">
-            </a-text>
-            <a-text 
-              id="fpsText"
-              value="30"
-              position="0.2 0 0"
-              width="2.0"
-              align="left"
-              color="#FFFFFF">
-            </a-text>
-          </a-entity>
-
-          <!-- === 操作設定セクション === -->
-          <a-entity position="0 -0.9 0">
-            <a-text 
-              value="=== Controls ==="
-              position="0 0 0"
-              width="2.2"
-              align="center"
-              color="#FFC107">
-            </a-text>
-          </a-entity>
-
-          <!-- 映像位置調整 -->
-          <a-entity position="0 -1.1 0">
-            <a-text 
-              value="Video Position"
-              position="-1.1 0 0"
-              width="2.2"
-              align="left"
-              color="#FFFFFF">
-            </a-text>
-          </a-entity>
-
-          <!-- X軸スライダー -->
-          <a-entity position="0 -1.3 0">
-            <a-text 
-              value="X"
-              position="-1.1 0 0"
-              width="2.2"
-              align="left"
-              color="#FFFFFF">
-            </a-text>
-            <!-- スライダー背景 -->
-            <a-plane 
-              width="1.2" 
-              height="0.05"
-              color="#666666"
-              position="0.2 0 0">
-            </a-plane>
-            <!-- スライダーハンドル -->
-            <a-plane 
-              id="videoXSlider"
-              class="ui-slider"
-              width="0.08" 
-              height="0.12"
-              color="#2196F3"
-              position="0.2 0 0.01"
-              ui-slider="min: -5; max: 5; value: 0; axis: x">
-            </a-plane>
-            <!-- 値表示 -->
-            <a-text 
-              id="videoXValue"
-              value="0.0"
-              position="0.9 0 0"
-              width="2.0"
-              align="left"
-              color="#FFFFFF">
-            </a-text>
-          </a-entity>
-
-          <!-- Y軸スライダー -->
-          <a-entity position="0 -1.5 0">
-            <a-text 
-              value="Y"
-              position="-1.1 0 0"
-              width="2.2"
-              align="left"
-              color="#FFFFFF">
-            </a-text>
-            <a-plane 
-              width="1.2" 
-              height="0.05"
-              color="#666666"
-              position="0.2 0 0">
-            </a-plane>
-            <a-plane 
-              id="videoYSlider"
-              class="ui-slider"
-              width="0.08" 
-              height="0.12"
-              color="#2196F3"
-              position="0.2 0 0.01"
-              ui-slider="min: -5; max: 5; value: 0; axis: y">
-            </a-plane>
-            <a-text 
-              id="videoYValue"
-              value="0.0"
-              position="0.9 0 0"
-              width="2.0"
-              align="left"
-              color="#FFFFFF">
-            </a-text>
-          </a-entity>
-
-          <!-- Z軸スライダー -->
-          <a-entity position="0 -1.7 0">
-            <a-text 
-              value="Z"
-              position="-1.1 0 0"
-              width="2.2"
-              align="left"
-              color="#FFFFFF">
-            </a-text>
-            <a-plane 
-              width="1.2" 
-              height="0.05"
-              color="#666666"
-              position="0.2 0 0">
-            </a-plane>
-            <a-plane 
-              id="videoZSlider"
-              class="ui-slider"
-              width="0.08" 
-              height="0.12"
-              color="#2196F3"
-              position="0.2 0 0.01"
-              ui-slider="min: -5; max: 5; value: 0; axis: z">
-            </a-plane>
-            <a-text 
-              id="videoZValue"
-              value="0.0"
-              position="0.9 0 0"
-              width="2.0"
-              align="left"
-              color="#FFFFFF">
-            </a-text>
-          </a-entity>
-
-          <!-- ジョイスティックデッドゾーン -->
-          <a-entity position="0 -1.95 0">
-            <a-text 
-              value="Joystick Deadzone"
-              position="-1.1 0 0"
-              width="2.2"
-              align="left"
-              color="#FFFFFF">
-            </a-text>
-            <a-plane 
-              width="1.2" 
-              height="0.05"
-              color="#666666"
-              position="0.2 0 0">
-            </a-plane>
-            <a-plane 
-              id="deadzoneSlider"
-              class="ui-slider"
-              width="0.08" 
-              height="0.12"
-              color="#2196F3"
-              position="0.2 0 0.01"
-              ui-slider="min: 0; max: 1; value: 0.2; axis: deadzone">
-            </a-plane>
-            <a-text 
-              id="deadzoneValue"
-              value="0.2"
-              position="0.9 0 0"
-              width="2.0"
-              align="left"
-              color="#FFFFFF">
-            </a-text>
-          </a-entity>
-
-          <!-- Debug Mode -->
-          <a-entity position="0 -2.2 0">
-            <a-text 
-              value="Debug Mode"
-              position="-1.1 0 0"
-              width="2.2"
-              align="left"
-              color="#FFFFFF">
-            </a-text>
-            <a-plane 
-              id="debugToggle"
-              class="ui-toggle"
-              width="0.4" 
-              height="0.15"
-              color="#CCCCCC"
-              position="0.2 0 0"
-              ui-toggle>
-            </a-plane>
-            <a-plane 
-              id="debugToggleHandle"
-              width="0.18" 
-              height="0.12"
-              color="#FFFFFF"
-              position="0.1 0 0.01">
-            </a-plane>
-          </a-entity>
-
-          <!-- Connect/Disconnect ボタン -->
-          <a-entity position="0 -2.5 0">
-            <!-- Connect -->
-            <a-plane 
-              id="connectButton"
-              class="ui-button"
-              width="1.1" 
-              height="0.2"
-              color="#2196F3"
-              position="-0.6 0 0"
-              ui-button>
-            </a-plane>
-            <a-text 
-              value="Connect"
-              position="-0.6 0 0.01"
-              width="2.0"
-              align="center"
-              color="#FFFFFF">
-            </a-text>
-
-            <!-- Disconnect -->
-            <a-plane 
-              id="disconnectButton"
-              class="ui-button"
-              width="1.1" 
-              height="0.2"
-              color="#F44336"
-              position="0.6 0 0"
-              ui-button>
-            </a-plane>
-            <a-text 
-              value="Disconnect"
-              position="0.6 0 0.01"
-              width="2.0"
-              align="center"
-              color="#FFFFFF">
-            </a-text>
-          </a-entity>
-
-        </a-entity>
-
-        <!-- スクロールダウンボタン -->
-        <a-plane 
-          id="scrollDownButton"
-          class="ui-scroll"
-          width="2.4" 
-          height="0.15"
-          color="#666666"
-          position="0 -1.25 0.01"
-          ui-scroll="direction: down">
-        </a-plane>
-        <a-text 
-          value="▼ SCROLL DOWN"
-          position="0 -1.25 0.02"
-          width="2.2"
-          align="center"
-          color="#FFFFFF">
-        </a-text>
-
-      </a-entity>
-
-      <!-- ========== 仮想キーボード（右側） ========== -->
-      <a-entity id="virtualKeyboard" visible="false" position="1.5 0 0">
-        
-        <!-- 背景パネル -->
-        <a-plane 
-          width="2.0" 
-          height="2.2"
-          color="#333333"
+          width="1.8" 
+          height="1.4"
+          color="#2C3E50"
           opacity="0.9"
           position="0 0 0">
         </a-plane>
 
         <!-- タイトル -->
         <a-text 
-          value="KEYBOARD"
-          position="0 0.95 0.01"
-          width="2.0"
+          value="SKYWAY"
+          position="0 0.6 0.01"
+          width="1.6"
           align="center"
-          color="#FFFFFF">
+          color="#3498DB">
+        </a-text>
+
+        <!-- ID入力フィールド -->
+        <a-entity position="0 0.35 0.01">
+          <a-text 
+            value="ID"
+            position="-0.8 0 0"
+            width="1.5"
+            align="left"
+            color="#FFFFFF">
+          </a-text>
+          <a-plane 
+            id="idInputField"
+            class="ui-input"
+            width="1.3" 
+            height="0.15"
+            color="#FFFFFF"
+            position="0.15 0 0"
+            ui-input="field: id">
+          </a-plane>
+          <a-text 
+            id="idInputText"
+            value="app-id"
+            position="-0.5 0 0.01"
+            width="1.4"
+            align="left"
+            color="#000000">
+          </a-text>
+        </a-entity>
+
+        <!-- PassKey入力フィールド -->
+        <a-entity position="0 0.1 0.01">
+          <a-text 
+            value="PassKey"
+            position="-0.8 0 0"
+            width="1.5"
+            align="left"
+            color="#FFFFFF">
+          </a-text>
+          <a-plane 
+            id="passkeyInputField"
+            class="ui-input"
+            width="1.3" 
+            height="0.15"
+            color="#FFFFFF"
+            position="0.15 0 0"
+            ui-input="field: passkey">
+          </a-plane>
+          <a-text 
+            id="passkeyInputText"
+            value="secret-key"
+            position="-0.5 0 0.01"
+            width="1.4"
+            align="left"
+            color="#000000">
+          </a-text>
+        </a-entity>
+
+        <!-- Room Select -->
+        <a-entity position="0 -0.15 0.01">
+          <a-text 
+            value="Room"
+            position="-0.8 0 0"
+            width="1.5"
+            align="left"
+            color="#FFFFFF">
+          </a-text>
+          
+          <a-entity position="-0.35 0 0">
+            <!-- room1 -->
+            <a-plane 
+              id="room1Button"
+              class="ui-button"
+              width="0.35" 
+              height="0.15"
+              color="#27AE60"
+              position="0 0 0"
+              ui-button>
+            </a-plane>
+            <a-text 
+              value="1"
+              position="0 0 0.01"
+              width="1.4"
+              align="center"
+              color="#FFFFFF">
+            </a-text>
+
+            <!-- room2 -->
+            <a-plane 
+              id="room2Button"
+              class="ui-button"
+              width="0.35" 
+              height="0.15"
+              color="#27AE60"
+              position="0.4 0 0"
+              ui-button>
+            </a-plane>
+            <a-text 
+              value="2"
+              position="0.4 0 0.01"
+              width="1.4"
+              align="center"
+              color="#FFFFFF">
+            </a-text>
+
+            <!-- room3 -->
+            <a-plane 
+              id="room3Button"
+              class="ui-button"
+              width="0.35" 
+              height="0.15"
+              color="#27AE60"
+              position="0.8 0 0"
+              ui-button>
+            </a-plane>
+            <a-text 
+              value="3"
+              position="0.8 0 0.01"
+              width="1.4"
+              align="center"
+              color="#FFFFFF">
+            </a-text>
+          </a-entity>
+        </a-entity>
+
+        <!-- Connect/Disconnect ボタン -->
+        <a-entity position="0 -0.5 0.01">
+          <!-- Connect -->
+          <a-plane 
+            id="connectButton"
+            class="ui-button"
+            width="0.8" 
+            height="0.18"
+            color="#3498DB"
+            position="-0.45 0 0"
+            ui-button>
+          </a-plane>
+          <a-text 
+            value="Connect"
+            position="-0.45 0 0.01"
+            width="1.5"
+            align="center"
+            color="#FFFFFF">
+          </a-text>
+
+          <!-- Disconnect -->
+          <a-plane 
+            id="disconnectButton"
+            class="ui-button"
+            width="0.8" 
+            height="0.18"
+            color="#E74C3C"
+            position="0.45 0 0"
+            ui-button>
+          </a-plane>
+          <a-text 
+            value="Disconnect"
+            position="0.45 0 0.01"
+            width="1.5"
+            align="center"
+            color="#FFFFFF">
+          </a-text>
+        </a-entity>
+
+      </a-entity>
+
+      <!-- ========== 中央パネル: 接続・映像情報 ========== -->
+      <a-entity id="infoPanel" position="0 0.3 0">
+        <!-- 背景パネル -->
+        <a-plane 
+          width="1.8" 
+          height="1.4"
+          color="#34495E"
+          opacity="0.9"
+          position="0 0 0">
+        </a-plane>
+
+        <!-- タイトル -->
+        <a-text 
+          value="INFO"
+          position="0 0.6 0.01"
+          width="1.6"
+          align="center"
+          color="#E67E22">
+        </a-text>
+
+        <!-- Connection ID -->
+        <a-entity position="0 0.35 0.01">
+          <a-text 
+            value="Connection ID"
+            position="-0.8 0 0"
+            width="1.5"
+            align="left"
+            color="#BDC3C7">
+          </a-text>
+          <a-text 
+            id="connectionIdText"
+            value="none"
+            position="-0.8 -0.12 0"
+            width="1.4"
+            align="left"
+            color="#2ECC71">
+          </a-text>
+        </a-entity>
+
+        <!-- Separator Line -->
+        <a-plane 
+          width="1.6" 
+          height="0.01"
+          color="#7F8C8D"
+          position="0 0.1 0.01">
+        </a-plane>
+
+        <!-- Video Info Title -->
+        <a-text 
+          value="Video Stream"
+          position="0 -0.05 0.01"
+          width="1.5"
+          align="center"
+          color="#BDC3C7">
+        </a-text>
+
+        <!-- Resolution -->
+        <a-entity position="0 -0.25 0.01">
+          <a-text 
+            value="Resolution:"
+            position="-0.8 0 0"
+            width="1.5"
+            align="left"
+            color="#BDC3C7">
+          </a-text>
+          <a-text 
+            id="resolutionText"
+            value="1920x1080"
+            position="0.1 0 0"
+            width="1.4"
+            align="left"
+            color="#FFFFFF">
+          </a-text>
+        </a-entity>
+
+        <!-- FPS -->
+        <a-entity position="0 -0.42 0.01">
+          <a-text 
+            value="FPS:"
+            position="-0.8 0 0"
+            width="1.5"
+            align="left"
+            color="#BDC3C7">
+          </a-text>
+          <a-text 
+            id="fpsText"
+            value="30"
+            position="0.1 0 0"
+            width="1.4"
+            align="left"
+            color="#FFFFFF">
+          </a-text>
+        </a-entity>
+
+        <!-- Separator Line -->
+        <a-plane 
+          width="1.6" 
+          height="0.01"
+          color="#7F8C8D"
+          position="0 -0.55 0.01">
+        </a-plane>
+
+        <!-- Debug Mode -->
+        <a-entity position="0 -0.65 0.01">
+          <a-text 
+            value="Debug Mode"
+            position="-0.8 0 0"
+            width="1.5"
+            align="left"
+            color="#BDC3C7">
+          </a-text>
+          <a-plane 
+            id="debugToggle"
+            class="ui-toggle"
+            width="0.4" 
+            height="0.15"
+            color="#95A5A6"
+            position="0.4 0 0"
+            ui-toggle>
+          </a-plane>
+          <a-plane 
+            id="debugToggleHandle"
+            width="0.18" 
+            height="0.12"
+            color="#FFFFFF"
+            position="0.29 0 0.01">
+          </a-plane>
+        </a-entity>
+
+      </a-entity>
+
+      <!-- ========== 右パネル: 使い方ガイド ========== -->
+      <a-entity id="guidePanel" position="2 0.3 0">
+        <!-- 背景パネル -->
+        <a-plane 
+          width="1.8" 
+          height="1.4"
+          color="#16A085"
+          opacity="0.9"
+          position="0 0 0">
+        </a-plane>
+
+        <!-- タイトル -->
+        <a-text 
+          value="GUIDE"
+          position="0 0.6 0.01"
+          width="1.6"
+          align="center"
+          color="#F1C40F">
+        </a-text>
+
+        <!-- ガイドテキスト -->
+        <a-text 
+          value="Controls:\n\nX Button (Left)\n- Switch Mode\n\nTrigger (Right)\n- Click UI\n\nMode:\n- Settings: Config\n- Control: View"
+          position="-0.8 0.2 0.01"
+          width="1.4"
+          align="left"
+          color="#FFFFFF"
+          line-height="55">
+        </a-text>
+
+      </a-entity>
+
+      <!-- ========== 仮想キーボード（下部中央） ========== -->
+      <a-entity id="virtualKeyboard" visible="false" position="0 -0.8 0">
+        
+        <!-- 背景パネル -->
+        <a-plane 
+          width="2.0" 
+          height="1.3"
+          color="#1C1C1C"
+          opacity="0.95"
+          position="0 0 0">
+        </a-plane>
+
+        <!-- タイトル -->
+        <a-text 
+          value="KEYBOARD"
+          position="0 0.58 0.01"
+          width="1.8"
+          align="center"
+          color="#F39C12">
         </a-text>
 
         <!-- 数字キー 1-9 -->
-        <a-entity position="-0.8 0.65 0.01">
-          <a-plane class="ui-key" width="0.15" height="0.15" color="#555555" position="0 0 0" ui-key="key: 1"></a-plane>
-          <a-text value="1" position="0 0 0.01" width="1.5" align="center" color="#FFFFFF"></a-text>
+        <a-entity position="-0.8 0.4 0.01">
+          <a-plane class="ui-key" width="0.15" height="0.15" color="#444444" position="0 0 0" ui-key="key: 1"></a-plane>
+          <a-text value="1" position="0 0 0.01" width="1.4" align="center" color="#FFFFFF"></a-text>
           
-          <a-plane class="ui-key" width="0.15" height="0.15" color="#555555" position="0.2 0 0" ui-key="key: 2"></a-plane>
-          <a-text value="2" position="0.2 0 0.01" width="1.5" align="center" color="#FFFFFF"></a-text>
+          <a-plane class="ui-key" width="0.15" height="0.15" color="#444444" position="0.2 0 0" ui-key="key: 2"></a-plane>
+          <a-text value="2" position="0.2 0 0.01" width="1.4" align="center" color="#FFFFFF"></a-text>
           
-          <a-plane class="ui-key" width="0.15" height="0.15" color="#555555" position="0.4 0 0" ui-key="key: 3"></a-plane>
-          <a-text value="3" position="0.4 0 0.01" width="1.5" align="center" color="#FFFFFF"></a-text>
+          <a-plane class="ui-key" width="0.15" height="0.15" color="#444444" position="0.4 0 0" ui-key="key: 3"></a-plane>
+          <a-text value="3" position="0.4 0 0.01" width="1.4" align="center" color="#FFFFFF"></a-text>
           
-          <a-plane class="ui-key" width="0.15" height="0.15" color="#555555" position="0.6 0 0" ui-key="key: 4"></a-plane>
-          <a-text value="4" position="0.6 0 0.01" width="1.5" align="center" color="#FFFFFF"></a-text>
+          <a-plane class="ui-key" width="0.15" height="0.15" color="#444444" position="0.6 0 0" ui-key="key: 4"></a-plane>
+          <a-text value="4" position="0.6 0 0.01" width="1.4" align="center" color="#FFFFFF"></a-text>
           
-          <a-plane class="ui-key" width="0.15" height="0.15" color="#555555" position="0.8 0 0" ui-key="key: 5"></a-plane>
-          <a-text value="5" position="0.8 0 0.01" width="1.5" align="center" color="#FFFFFF"></a-text>
+          <a-plane class="ui-key" width="0.15" height="0.15" color="#444444" position="0.8 0 0" ui-key="key: 5"></a-plane>
+          <a-text value="5" position="0.8 0 0.01" width="1.4" align="center" color="#FFFFFF"></a-text>
           
-          <a-plane class="ui-key" width="0.15" height="0.15" color="#555555" position="1.0 0 0" ui-key="key: 6"></a-plane>
-          <a-text value="6" position="1.0 0 0.01" width="1.5" align="center" color="#FFFFFF"></a-text>
+          <a-plane class="ui-key" width="0.15" height="0.15" color="#444444" position="1.0 0 0" ui-key="key: 6"></a-plane>
+          <a-text value="6" position="1.0 0 0.01" width="1.4" align="center" color="#FFFFFF"></a-text>
           
-          <a-plane class="ui-key" width="0.15" height="0.15" color="#555555" position="1.2 0 0" ui-key="key: 7"></a-plane>
-          <a-text value="7" position="1.2 0 0.01" width="1.5" align="center" color="#FFFFFF"></a-text>
+          <a-plane class="ui-key" width="0.15" height="0.15" color="#444444" position="1.2 0 0" ui-key="key: 7"></a-plane>
+          <a-text value="7" position="1.2 0 0.01" width="1.4" align="center" color="#FFFFFF"></a-text>
           
-          <a-plane class="ui-key" width="0.15" height="0.15" color="#555555" position="1.4 0 0" ui-key="key: 8"></a-plane>
-          <a-text value="8" position="1.4 0 0.01" width="1.5" align="center" color="#FFFFFF"></a-text>
+          <a-plane class="ui-key" width="0.15" height="0.15" color="#444444" position="1.4 0 0" ui-key="key: 8"></a-plane>
+          <a-text value="8" position="1.4 0 0.01" width="1.4" align="center" color="#FFFFFF"></a-text>
           
-          <a-plane class="ui-key" width="0.15" height="0.15" color="#555555" position="1.6 0 0" ui-key="key: 9"></a-plane>
-          <a-text value="9" position="1.6 0 0.01" width="1.5" align="center" color="#FFFFFF"></a-text>
+          <a-plane class="ui-key" width="0.15" height="0.15" color="#444444" position="1.6 0 0" ui-key="key: 9"></a-plane>
+          <a-text value="9" position="1.6 0 0.01" width="1.4" align="center" color="#FFFFFF"></a-text>
         </a-entity>
 
         <!-- 数字キー 0 と記号 -->
-        <a-entity position="-0.8 0.45 0.01">
-          <a-plane class="ui-key" width="0.15" height="0.15" color="#555555" position="0 0 0" ui-key="key: 0"></a-plane>
-          <a-text value="0" position="0 0 0.01" width="1.5" align="center" color="#FFFFFF"></a-text>
+        <a-entity position="-0.8 0.2 0.01">
+          <a-plane class="ui-key" width="0.15" height="0.15" color="#444444" position="0 0 0" ui-key="key: 0"></a-plane>
+          <a-text value="0" position="0 0 0.01" width="1.4" align="center" color="#FFFFFF"></a-text>
           
-          <a-plane class="ui-key" width="0.15" height="0.15" color="#555555" position="0.2 0 0" ui-key="key: @"></a-plane>
-          <a-text value="@" position="0.2 0 0.01" width="1.5" align="center" color="#FFFFFF"></a-text>
+          <a-plane class="ui-key" width="0.15" height="0.15" color="#444444" position="0.2 0 0" ui-key="key: @"></a-plane>
+          <a-text value="@" position="0.2 0 0.01" width="1.4" align="center" color="#FFFFFF"></a-text>
           
-          <a-plane class="ui-key" width="0.15" height="0.15" color="#555555" position="0.4 0 0" ui-key="key: ."></a-plane>
-          <a-text value="." position="0.4 0 0.01" width="1.5" align="center" color="#FFFFFF"></a-text>
+          <a-plane class="ui-key" width="0.15" height="0.15" color="#444444" position="0.4 0 0" ui-key="key: ."></a-plane>
+          <a-text value="." position="0.4 0 0.01" width="1.4" align="center" color="#FFFFFF"></a-text>
           
-          <a-plane class="ui-key" width="0.15" height="0.15" color="#555555" position="0.6 0 0" ui-key="key: -"></a-plane>
-          <a-text value="-" position="0.6 0 0.01" width="1.5" align="center" color="#FFFFFF"></a-text>
+          <a-plane class="ui-key" width="0.15" height="0.15" color="#444444" position="0.6 0 0" ui-key="key: -"></a-plane>
+          <a-text value="-" position="0.6 0 0.01" width="1.4" align="center" color="#FFFFFF"></a-text>
           
-          <a-plane class="ui-key" width="0.15" height="0.15" color="#555555" position="0.8 0 0" ui-key="key: _"></a-plane>
-          <a-text value="_" position="0.8 0 0.01" width="1.5" align="center" color="#FFFFFF"></a-text>
+          <a-plane class="ui-key" width="0.15" height="0.15" color="#444444" position="0.8 0 0" ui-key="key: _"></a-plane>
+          <a-text value="_" position="0.8 0 0.01" width="1.4" align="center" color="#FFFFFF"></a-text>
         </a-entity>
 
         <!-- アルファベット a-i -->
-        <a-entity position="-0.8 0.25 0.01">
-          <a-plane class="ui-key" width="0.15" height="0.15" color="#555555" position="0 0 0" ui-key="key: a"></a-plane>
-          <a-text value="a" position="0 0 0.01" width="1.5" align="center" color="#FFFFFF"></a-text>
+        <a-entity position="-0.8 0 0.01">
+          <a-plane class="ui-key" width="0.15" height="0.15" color="#444444" position="0 0 0" ui-key="key: a"></a-plane>
+          <a-text value="a" position="0 0 0.01" width="1.4" align="center" color="#FFFFFF"></a-text>
           
-          <a-plane class="ui-key" width="0.15" height="0.15" color="#555555" position="0.2 0 0" ui-key="key: b"></a-plane>
-          <a-text value="b" position="0.2 0 0.01" width="1.5" align="center" color="#FFFFFF"></a-text>
+          <a-plane class="ui-key" width="0.15" height="0.15" color="#444444" position="0.2 0 0" ui-key="key: b"></a-plane>
+          <a-text value="b" position="0.2 0 0.01" width="1.4" align="center" color="#FFFFFF"></a-text>
           
-          <a-plane class="ui-key" width="0.15" height="0.15" color="#555555" position="0.4 0 0" ui-key="key: c"></a-plane>
-          <a-text value="c" position="0.4 0 0.01" width="1.5" align="center" color="#FFFFFF"></a-text>
+          <a-plane class="ui-key" width="0.15" height="0.15" color="#444444" position="0.4 0 0" ui-key="key: c"></a-plane>
+          <a-text value="c" position="0.4 0 0.01" width="1.4" align="center" color="#FFFFFF"></a-text>
           
-          <a-plane class="ui-key" width="0.15" height="0.15" color="#555555" position="0.6 0 0" ui-key="key: d"></a-plane>
-          <a-text value="d" position="0.6 0 0.01" width="1.5" align="center" color="#FFFFFF"></a-text>
+          <a-plane class="ui-key" width="0.15" height="0.15" color="#444444" position="0.6 0 0" ui-key="key: d"></a-plane>
+          <a-text value="d" position="0.6 0 0.01" width="1.4" align="center" color="#FFFFFF"></a-text>
           
-          <a-plane class="ui-key" width="0.15" height="0.15" color="#555555" position="0.8 0 0" ui-key="key: e"></a-plane>
-          <a-text value="e" position="0.8 0 0.01" width="1.5" align="center" color="#FFFFFF"></a-text>
+          <a-plane class="ui-key" width="0.15" height="0.15" color="#444444" position="0.8 0 0" ui-key="key: e"></a-plane>
+          <a-text value="e" position="0.8 0 0.01" width="1.4" align="center" color="#FFFFFF"></a-text>
           
-          <a-plane class="ui-key" width="0.15" height="0.15" color="#555555" position="1.0 0 0" ui-key="key: f"></a-plane>
-          <a-text value="f" position="1.0 0 0.01" width="1.5" align="center" color="#FFFFFF"></a-text>
+          <a-plane class="ui-key" width="0.15" height="0.15" color="#444444" position="1.0 0 0" ui-key="key: f"></a-plane>
+          <a-text value="f" position="1.0 0 0.01" width="1.4" align="center" color="#FFFFFF"></a-text>
           
-          <a-plane class="ui-key" width="0.15" height="0.15" color="#555555" position="1.2 0 0" ui-key="key: g"></a-plane>
-          <a-text value="g" position="1.2 0 0.01" width="1.5" align="center" color="#FFFFFF"></a-text>
+          <a-plane class="ui-key" width="0.15" height="0.15" color="#444444" position="1.2 0 0" ui-key="key: g"></a-plane>
+          <a-text value="g" position="1.2 0 0.01" width="1.4" align="center" color="#FFFFFF"></a-text>
           
-          <a-plane class="ui-key" width="0.15" height="0.15" color="#555555" position="1.4 0 0" ui-key="key: h"></a-plane>
-          <a-text value="h" position="1.4 0 0.01" width="1.5" align="center" color="#FFFFFF"></a-text>
+          <a-plane class="ui-key" width="0.15" height="0.15" color="#444444" position="1.4 0 0" ui-key="key: h"></a-plane>
+          <a-text value="h" position="1.4 0 0.01" width="1.4" align="center" color="#FFFFFF"></a-text>
           
-          <a-plane class="ui-key" width="0.15" height="0.15" color="#555555" position="1.6 0 0" ui-key="key: i"></a-plane>
-          <a-text value="i" position="1.6 0 0.01" width="1.5" align="center" color="#FFFFFF"></a-text>
+          <a-plane class="ui-key" width="0.15" height="0.15" color="#444444" position="1.6 0 0" ui-key="key: i"></a-plane>
+          <a-text value="i" position="1.6 0 0.01" width="1.4" align="center" color="#FFFFFF"></a-text>
         </a-entity>
 
         <!-- アルファベット j-r -->
-        <a-entity position="-0.8 0.05 0.01">
-          <a-plane class="ui-key" width="0.15" height="0.15" color="#555555" position="0 0 0" ui-key="key: j"></a-plane>
-          <a-text value="j" position="0 0 0.01" width="1.5" align="center" color="#FFFFFF"></a-text>
+        <a-entity position="-0.8 -0.2 0.01">
+          <a-plane class="ui-key" width="0.15" height="0.15" color="#444444" position="0 0 0" ui-key="key: j"></a-plane>
+          <a-text value="j" position="0 0 0.01" width="1.4" align="center" color="#FFFFFF"></a-text>
           
-          <a-plane class="ui-key" width="0.15" height="0.15" color="#555555" position="0.2 0 0" ui-key="key: k"></a-plane>
-          <a-text value="k" position="0.2 0 0.01" width="1.5" align="center" color="#FFFFFF"></a-text>
+          <a-plane class="ui-key" width="0.15" height="0.15" color="#444444" position="0.2 0 0" ui-key="key: k"></a-plane>
+          <a-text value="k" position="0.2 0 0.01" width="1.4" align="center" color="#FFFFFF"></a-text>
           
-          <a-plane class="ui-key" width="0.15" height="0.15" color="#555555" position="0.4 0 0" ui-key="key: l"></a-plane>
-          <a-text value="l" position="0.4 0 0.01" width="1.5" align="center" color="#FFFFFF"></a-text>
+          <a-plane class="ui-key" width="0.15" height="0.15" color="#444444" position="0.4 0 0" ui-key="key: l"></a-plane>
+          <a-text value="l" position="0.4 0 0.01" width="1.4" align="center" color="#FFFFFF"></a-text>
           
-          <a-plane class="ui-key" width="0.15" height="0.15" color="#555555" position="0.6 0 0" ui-key="key: m"></a-plane>
-          <a-text value="m" position="0.6 0 0.01" width="1.5" align="center" color="#FFFFFF"></a-text>
+          <a-plane class="ui-key" width="0.15" height="0.15" color="#444444" position="0.6 0 0" ui-key="key: m"></a-plane>
+          <a-text value="m" position="0.6 0 0.01" width="1.4" align="center" color="#FFFFFF"></a-text>
           
-          <a-plane class="ui-key" width="0.15" height="0.15" color="#555555" position="0.8 0 0" ui-key="key: n"></a-plane>
-          <a-text value="n" position="0.8 0 0.01" width="1.5" align="center" color="#FFFFFF"></a-text>
+          <a-plane class="ui-key" width="0.15" height="0.15" color="#444444" position="0.8 0 0" ui-key="key: n"></a-plane>
+          <a-text value="n" position="0.8 0 0.01" width="1.4" align="center" color="#FFFFFF"></a-text>
           
-          <a-plane class="ui-key" width="0.15" height="0.15" color="#555555" position="1.0 0 0" ui-key="key: o"></a-plane>
-          <a-text value="o" position="1.0 0 0.01" width="1.5" align="center" color="#FFFFFF"></a-text>
+          <a-plane class="ui-key" width="0.15" height="0.15" color="#444444" position="1.0 0 0" ui-key="key: o"></a-plane>
+          <a-text value="o" position="1.0 0 0.01" width="1.4" align="center" color="#FFFFFF"></a-text>
           
-          <a-plane class="ui-key" width="0.15" height="0.15" color="#555555" position="1.2 0 0" ui-key="key: p"></a-plane>
-          <a-text value="p" position="1.2 0 0.01" width="1.5" align="center" color="#FFFFFF"></a-text>
+          <a-plane class="ui-key" width="0.15" height="0.15" color="#444444" position="1.2 0 0" ui-key="key: p"></a-plane>
+          <a-text value="p" position="1.2 0 0.01" width="1.4" align="center" color="#FFFFFF"></a-text>
           
-          <a-plane class="ui-key" width="0.15" height="0.15" color="#555555" position="1.4 0 0" ui-key="key: q"></a-plane>
-          <a-text value="q" position="1.4 0 0.01" width="1.5" align="center" color="#FFFFFF"></a-text>
+          <a-plane class="ui-key" width="0.15" height="0.15" color="#444444" position="1.4 0 0" ui-key="key: q"></a-plane>
+          <a-text value="q" position="1.4 0 0.01" width="1.4" align="center" color="#FFFFFF"></a-text>
           
-          <a-plane class="ui-key" width="0.15" height="0.15" color="#555555" position="1.6 0 0" ui-key="key: r"></a-plane>
-          <a-text value="r" position="1.6 0 0.01" width="1.5" align="center" color="#FFFFFF"></a-text>
+          <a-plane class="ui-key" width="0.15" height="0.15" color="#444444" position="1.6 0 0" ui-key="key: r"></a-plane>
+          <a-text value="r" position="1.6 0 0.01" width="1.4" align="center" color="#FFFFFF"></a-text>
         </a-entity>
 
-        <!-- アルファベット s-z -->
-        <a-entity position="-0.8 -0.15 0.01">
-          <a-plane class="ui-key" width="0.15" height="0.15" color="#555555" position="0 0 0" ui-key="key: s"></a-plane>
-          <a-text value="s" position="0 0 0.01" width="1.5" align="center" color="#FFFFFF"></a-text>
+        <!-- アルファベット s-z と機能キー -->
+        <a-entity position="-0.8 -0.4 0.01">
+          <a-plane class="ui-key" width="0.15" height="0.15" color="#444444" position="0 0 0" ui-key="key: s"></a-plane>
+          <a-text value="s" position="0 0 0.01" width="1.4" align="center" color="#FFFFFF"></a-text>
           
-          <a-plane class="ui-key" width="0.15" height="0.15" color="#555555" position="0.2 0 0" ui-key="key: t"></a-plane>
-          <a-text value="t" position="0.2 0 0.01" width="1.5" align="center" color="#FFFFFF"></a-text>
+          <a-plane class="ui-key" width="0.15" height="0.15" color="#444444" position="0.2 0 0" ui-key="key: t"></a-plane>
+          <a-text value="t" position="0.2 0 0.01" width="1.4" align="center" color="#FFFFFF"></a-text>
           
-          <a-plane class="ui-key" width="0.15" height="0.15" color="#555555" position="0.4 0 0" ui-key="key: u"></a-plane>
-          <a-text value="u" position="0.4 0 0.01" width="1.5" align="center" color="#FFFFFF"></a-text>
+          <a-plane class="ui-key" width="0.15" height="0.15" color="#444444" position="0.4 0 0" ui-key="key: u"></a-plane>
+          <a-text value="u" position="0.4 0 0.01" width="1.4" align="center" color="#FFFFFF"></a-text>
           
-          <a-plane class="ui-key" width="0.15" height="0.15" color="#555555" position="0.6 0 0" ui-key="key: v"></a-plane>
-          <a-text value="v" position="0.6 0 0.01" width="1.5" align="center" color="#FFFFFF"></a-text>
+          <a-plane class="ui-key" width="0.15" height="0.15" color="#444444" position="0.6 0 0" ui-key="key: v"></a-plane>
+          <a-text value="v" position="0.6 0 0.01" width="1.4" align="center" color="#FFFFFF"></a-text>
           
-          <a-plane class="ui-key" width="0.15" height="0.15" color="#555555" position="0.8 0 0" ui-key="key: w"></a-plane>
-          <a-text value="w" position="0.8 0 0.01" width="1.5" align="center" color="#FFFFFF"></a-text>
+          <a-plane class="ui-key" width="0.15" height="0.15" color="#444444" position="0.8 0 0" ui-key="key: w"></a-plane>
+          <a-text value="w" position="0.8 0 0.01" width="1.4" align="center" color="#FFFFFF"></a-text>
           
-          <a-plane class="ui-key" width="0.15" height="0.15" color="#555555" position="1.0 0 0" ui-key="key: x"></a-plane>
-          <a-text value="x" position="1.0 0 0.01" width="1.5" align="center" color="#FFFFFF"></a-text>
+          <a-plane class="ui-key" width="0.15" height="0.15" color="#444444" position="1.0 0 0" ui-key="key: x"></a-plane>
+          <a-text value="x" position="1.0 0 0.01" width="1.4" align="center" color="#FFFFFF"></a-text>
           
-          <a-plane class="ui-key" width="0.15" height="0.15" color="#555555" position="1.2 0 0" ui-key="key: y"></a-plane>
-          <a-text value="y" position="1.2 0 0.01" width="1.5" align="center" color="#FFFFFF"></a-text>
+          <a-plane class="ui-key" width="0.15" height="0.15" color="#444444" position="1.2 0 0" ui-key="key: y"></a-plane>
+          <a-text value="y" position="1.2 0 0.01" width="1.4" align="center" color="#FFFFFF"></a-text>
           
-          <a-plane class="ui-key" width="0.15" height="0.15" color="#555555" position="1.4 0 0" ui-key="key: z"></a-plane>
-          <a-text value="z" position="1.4 0 0.01" width="1.5" align="center" color="#FFFFFF"></a-text>
-        </a-entity>
-
-        <!-- 機能キー -->
-        <a-entity position="-0.5 -0.45 0.01">
+          <a-plane class="ui-key" width="0.15" height="0.15" color="#444444" position="1.4 0 0" ui-key="key: z"></a-plane>
+          <a-text value="z" position="1.4 0 0.01" width="1.4" align="center" color="#FFFFFF"></a-text>
+          
           <!-- Backspace -->
-          <a-plane class="ui-key" width="0.4" height="0.15" color="#FF5722" position="0 0 0" ui-key="key: Backspace"></a-plane>
-          <a-text value="<-" position="0 0 0.01" width="1.5" align="center" color="#FFFFFF"></a-text>
-          
+          <a-plane class="ui-key" width="0.25" height="0.15" color="#E74C3C" position="1.675 0 0" ui-key="key: Backspace"></a-plane>
+          <a-text value="<-" position="1.675 0 0.01" width="1.4" align="center" color="#FFFFFF"></a-text>
+        </a-entity>
+
+        <!-- Space と Enter -->
+        <a-entity position="-0.5 -0.58 0.01">
           <!-- Space -->
-          <a-plane class="ui-key" width="0.6" height="0.15" color="#555555" position="0.5 0 0" ui-key="key: Space"></a-plane>
-          <a-text value="Space" position="0.5 0 0.01" width="1.5" align="center" color="#FFFFFF"></a-text>
+          <a-plane class="ui-key" width="1.2" height="0.15" color="#444444" position="0 0 0" ui-key="key: Space"></a-plane>
+          <a-text value="Space" position="0 0 0.01" width="1.4" align="center" color="#FFFFFF"></a-text>
           
           <!-- Enter -->
-          <a-plane class="ui-key" width="0.4" height="0.15" color="#4CAF50" position="1.15 0 0" ui-key="key: Enter"></a-plane>
-          <a-text value="Enter" position="1.15 0 0.01" width="1.5" align="center" color="#FFFFFF"></a-text>
+          <a-plane class="ui-key" width="0.5" height="0.15" color="#27AE60" position="0.85 0 0" ui-key="key: Enter"></a-plane>
+          <a-text value="Enter" position="0.85 0 0.01" width="1.4" align="center" color="#FFFFFF"></a-text>
         </a-entity>
 
       </a-entity>
@@ -755,7 +610,7 @@
     </a-entity>
 
     <!-- 環境 -->
-    <a-sky color="#111"></a-sky>
+    <a-sky color="#0A0A0A"></a-sky>
   </a-scene>
 
   <!-- リモートビデオ要素（画面外に配置） -->
