@@ -1,10 +1,56 @@
 /**
  * ui.js
  * UI関連のA-Frameコンポーネントとロジック
- * 仮想キーボード、ボタン、トグル、入力フィールド
+ * 仮想キーボード、ボタン、トグル、入力フィールド、振動フィードバック
  */
 
 /* global AFRAME */
+
+/**
+ * A-Frameコンポーネント: vibration
+ * UI要素のクリック時に振動フィードバックを提供
+ */
+AFRAME.registerComponent('vibration', {
+  schema: {
+    duration: { type: 'int', default: 100 },
+    value: { type: 'number', default: 0.5 }
+  },
+  
+  init: function() {
+    this.onClick = this.onClick.bind(this);
+    this.el.addEventListener('click', this.onClick);
+    console.log('[VIBRATION] Initialized for', this.el.id || this.el.className);
+  },
+  
+  onClick: function(e) {
+    this.triggerVibration();
+  },
+  
+  triggerVibration: function() {
+    try {
+      // スマホ用振動
+      if (navigator.vibrate) {
+        navigator.vibrate(this.data.duration);
+        console.log('[VIBRATION] Mobile vibration triggered');
+      }
+      
+      // VRコントローラー振動（Oculus Touch等）
+      const gamepads = navigator.getGamepads && navigator.getGamepads();
+      if (gamepads) {
+        for (let i = 0; i < gamepads.length; i++) {
+          const gamepad = gamepads[i];
+          if (gamepad && gamepad.hapticActuators && gamepad.hapticActuators.length > 0) {
+            gamepad.hapticActuators[0].pulse(this.data.value, this.data.duration);
+            console.log('[VIBRATION] VR controller vibration triggered');
+            break;  // 1つ振動させたら終了
+          }
+        }
+      }
+    } catch (error) {
+      console.error('[VIBRATION] Error:', error);
+    }
+  }
+});
 
 // UI状態管理
 window.uiState = {

@@ -2,7 +2,7 @@
  * a_frame.js
  * A-Frameカスタムコンポーネントとコントローラー管理
  * モード切り替え機能、VRコントローラー管理を含む（Oculus Touchのみ対応）
- * Rayの動的な長さ調整と振動フィードバック機能を含む
+ * Rayの動的な長さ調整機能を含む
  */
 
 /* global AFRAME, THREE */
@@ -104,7 +104,7 @@ AFRAME.registerComponent('dynamic-ray', {
 /**
  * A-Frameコンポーネント: controller-cursor
  * コントローラーのトリガーでレイキャスト上のオブジェクトをクリック
- * 振動フィードバック機能を含む
+ * 振動フィードバックはui.jsのvibrationコンポーネントで処理
  */
 AFRAME.registerComponent('controller-cursor', {
   init: function() {
@@ -144,53 +144,10 @@ AFRAME.registerComponent('controller-cursor', {
     if (this.hoveredEl) {
       console.log('[CONTROLLER CURSOR] Clicking on:', this.hoveredEl.id || this.hoveredEl.className);
       
-      // 振動フィードバックを実行
-      this.triggerHapticFeedback();
-      
-      // clickイベントを発火
+      // clickイベントを発火（振動はvibrationコンポーネントで処理される）
       this.hoveredEl.emit('click');
     } else {
       console.log('[CONTROLLER CURSOR] No element hovered');
-    }
-  },
-  
-  /**
-   * コントローラーに振動フィードバックを送る
-   */
-  triggerHapticFeedback: function() {
-    try {
-      // 方法1: Oculus Touch Controlsのpulseメソッドを使用
-      const oculusTouchControls = this.el.components['oculus-touch-controls'];
-      if (oculusTouchControls && oculusTouchControls.controller) {
-        // pulse(intensity, duration)
-        // intensity: 0.0-1.0, duration: ミリ秒
-        oculusTouchControls.controller.pulse(0.5, 100);
-        console.log('[HAPTIC] Vibration triggered via Oculus Touch Controls');
-        return;
-      }
-      
-      // 方法2: Gamepad APIを直接使用
-      const gamepads = navigator.getGamepads();
-      if (gamepads) {
-        for (let i = 0; i < gamepads.length; i++) {
-          const gamepad = gamepads[i];
-          if (gamepad && gamepad.hand === 'right' && gamepad.vibrationActuator) {
-            // playEffect(type, params)
-            gamepad.vibrationActuator.playEffect('dual-rumble', {
-              startDelay: 0,
-              duration: 100,
-              weakMagnitude: 0.5,
-              strongMagnitude: 0.5
-            });
-            console.log('[HAPTIC] Vibration triggered via Gamepad API');
-            return;
-          }
-        }
-      }
-      
-      console.warn('[HAPTIC] No vibration method available');
-    } catch (error) {
-      console.error('[HAPTIC] Error triggering vibration:', error);
     }
   }
 });
