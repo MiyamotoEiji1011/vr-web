@@ -1,7 +1,7 @@
 /**
  * a_frame.js
  * A-Frameカスタムコンポーネントとコントローラー管理
- * モード切り替え機能、VRコントローラー管理を含む（Oculus Touchのみ対応）
+ * モード切り替え機能、UI表示制御を含む（Oculus Touchのみ対応）
  */
 
 /* global AFRAME, THREE */
@@ -38,56 +38,6 @@ const modeToggleState = {
   xButtonPressed: false,  // Xボタンの現在の状態
   xKeyPressed: false      // Xキーの現在の状態
 };
-
-/**
- * A-Frameコンポーネント: controller-cursor
- * コントローラーのトリガーでレイキャスト上のオブジェクトをクリック
- */
-AFRAME.registerComponent('controller-cursor', {
-  init: function() {
-    this.hoveredEl = null;
-    this.triggerPressed = false;
-    
-    // レイキャスターのイベントをリッスン
-    this.el.addEventListener('raycaster-intersection', (evt) => {
-      // 複数の交差がある場合、最も近いものを取得
-      if (evt.detail.els && evt.detail.els.length > 0) {
-        this.hoveredEl = evt.detail.els[0];
-        console.log('[CONTROLLER CURSOR] Hovering:', this.hoveredEl.id || this.hoveredEl.className);
-      }
-    });
-    
-    this.el.addEventListener('raycaster-intersection-cleared', (evt) => {
-      console.log('[CONTROLLER CURSOR] Hover cleared');
-      this.hoveredEl = null;
-    });
-    
-    // トリガーボタンのイベントをリッスン
-    this.el.addEventListener('triggerdown', () => {
-      if (!this.triggerPressed) {
-        this.triggerPressed = true;
-        this.onClick();
-      }
-    });
-    
-    this.el.addEventListener('triggerup', () => {
-      this.triggerPressed = false;
-    });
-    
-    console.log('[CONTROLLER CURSOR] Initialized for', this.el.id);
-  },
-  
-  onClick: function() {
-    if (this.hoveredEl) {
-      console.log('[CONTROLLER CURSOR] Clicking on:', this.hoveredEl.id || this.hoveredEl.className);
-      
-      // clickイベントを発火
-      this.hoveredEl.emit('click');
-    } else {
-      console.log('[CONTROLLER CURSOR] No element hovered');
-    }
-  }
-});
 
 /**
  * A-Frameコンポーネント: rotation-reader
@@ -160,7 +110,7 @@ AFRAME.registerComponent('controller-listener', {
    * Oculus Touchのイベントをセットアップ
    */
   setupOculusEvents: function(state, hand) {
-    // Trigger - controller-cursorで使用されるため、ここでは状態更新のみ
+    // Trigger
     this.el.addEventListener('triggerdown', () => { state.trigger = 1; });
     this.el.addEventListener('triggerup', () => { state.trigger = 0; });
 
@@ -212,11 +162,6 @@ AFRAME.registerComponent('controller-listener', {
    * モード切り替えハンドラー
    */
   handleModeToggle: function() {
-    // キーボードが表示されている場合は閉じる
-    if (window.uiState && window.uiState.keyboardVisible) {
-      window.hideKeyboard();
-    }
-    
     if (window.appToggleMode) {
       window.appToggleMode();
     } else {
@@ -347,11 +292,6 @@ AFRAME.registerComponent('mode-manager', {
    */
   updateDisplay: function(mode) {
     console.log(`[MODE MANAGER] Switching display to ${mode} mode`);
-    
-    // キーボードが表示されている場合は閉じる
-    if (window.uiState && window.uiState.keyboardVisible && window.hideKeyboard) {
-      window.hideKeyboard();
-    }
     
     if (mode === 'settings') {
       // 設定モード
