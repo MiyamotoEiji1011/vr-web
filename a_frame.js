@@ -1,7 +1,7 @@
 /**
  * a_frame.js
  * A-Frameカスタムコンポーネントとコントローラー管理
- * モード切り替え機能、UI表示制御を含む（Oculus Touchのみ対応）
+ * モード切り替え機能、シンプルなUI表示制御を含む（Oculus Touchのみ対応）
  */
 
 /* global AFRAME, THREE */
@@ -33,11 +33,92 @@ window.controllerStates = {
   }
 };
 
+// UI状態管理
+window.uiState = {
+  selectedRoom: 'room1',
+  debugMode: false,
+  connected: false
+};
+
 // モード切り替え状態管理（エッジ検出用）
 const modeToggleState = {
   xButtonPressed: false,  // Xボタンの現在の状態
   xKeyPressed: false      // Xキーの現在の状態
 };
+
+/**
+ * A-Frameコンポーネント: ui-button
+ * シンプルなボタン機能
+ */
+AFRAME.registerComponent('ui-button', {
+  init: function() {
+    this.originalColor = this.el.getAttribute('color');
+    this.hoverColor = '#66BB6A'; // ホバー時の色
+    
+    // マウス/レイキャストイベント
+    this.el.addEventListener('mouseenter', () => {
+      this.el.setAttribute('color', this.hoverColor);
+    });
+    
+    this.el.addEventListener('mouseleave', () => {
+      this.el.setAttribute('color', this.originalColor);
+    });
+    
+    this.el.addEventListener('click', () => {
+      this.handleClick();
+    });
+  },
+  
+  handleClick: function() {
+    const id = this.el.id;
+    console.log(`[UI BUTTON] ${id} clicked`);
+    
+    // ボタンIDに応じた処理
+    if (id.startsWith('room')) {
+      const roomName = id.replace('Button', '');
+      window.uiState.selectedRoom = roomName;
+      console.log(`[UI] Selected room: ${roomName}`);
+    } else if (id === 'connectButton') {
+      console.log('[UI] Connect button clicked');
+    } else if (id === 'disconnectButton') {
+      console.log('[UI] Disconnect button clicked');
+    }
+  }
+});
+
+/**
+ * A-Frameコンポーネント: ui-toggle
+ * シンプルなトグル機能
+ */
+AFRAME.registerComponent('ui-toggle', {
+  init: function() {
+    this.isOn = false;
+    this.handle = document.getElementById('debugToggleHandle');
+    
+    this.el.addEventListener('click', () => {
+      this.toggle();
+    });
+  },
+  
+  toggle: function() {
+    this.isOn = !this.isOn;
+    
+    // ハンドル位置を変更
+    if (this.handle) {
+      const newX = this.isOn ? 0.1 : -0.1;
+      this.handle.setAttribute('position', `${newX} 0 0.01`);
+    }
+    
+    // 背景色を変更
+    const newColor = this.isOn ? '#2196F3' : '#CCCCCC';
+    this.el.setAttribute('color', newColor);
+    
+    // 状態を更新
+    window.uiState.debugMode = this.isOn;
+    
+    console.log(`[UI TOGGLE] Debug mode: ${this.isOn ? 'ON' : 'OFF'}`);
+  }
+});
 
 /**
  * A-Frameコンポーネント: rotation-reader
