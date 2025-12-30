@@ -87,31 +87,197 @@
     <!-- ========== 設定モード用UI（固定位置、カメラ追従なし） ========== -->
     <a-entity id="settingsModeUI" position="0 1 -2.5">
       
-      <!-- ========== 左パネル: SkyWay設定 ========== -->
-      <a-entity id="skywayPanel" position="-2 0 1" rotation="0 45 0">
+      <!-- ========== 左パネル ========== -->
+      <a-entity id="leftPanel" position="-2 0 1" rotation="0 45 0">
         <!-- 背景パネル -->
         <a-plane 
-          width="1.8" 
-          height="1.8"
-          color="#2C3E50"
-          opacity="0.9"
+          width="1.5" 
+          height="2.0"
+          color="#7F8C8D"
+          opacity="0.7"
           position="0 0 0">
         </a-plane>
 
-        <!-- タイトル -->
+        <!-- Pass入力フィールド -->
+        <a-entity position="0 0.75 0.01">
+          <a-text 
+            value="Pass"
+            position="-0.65 0 0"
+            width="1.5"
+            align="left"
+            color="#FFFFFF">
+          </a-text>
+          <a-plane 
+            id="passInputField"
+            class="ui-input"
+            width="1.0" 
+            height="0.15"
+            color="#FFFFFF"
+            position="0.1 0 0"
+            ui-input="field: pass">
+          </a-plane>
+          <a-text 
+            id="passInputText"
+            value=""
+            position="-0.38 0 0.01"
+            width="1.4"
+            align="left"
+            color="#000000">
+          </a-text>
+        </a-entity>
+
+        <!-- Room番号選択 -->
+        <a-entity position="0 0.5 0.01">
+          <a-text 
+            value="Room"
+            position="-0.65 0 0"
+            width="1.5"
+            align="left"
+            color="#FFFFFF">
+          </a-text>
+          
+          <!-- 現在のRoom番号 -->
+          <a-plane 
+            width="0.3" 
+            height="0.18"
+            color="#FFFFFF"
+            position="0.1 0 0">
+          </a-plane>
+          <a-text 
+            id="roomNumberText"
+            value="1"
+            position="0.1 0 0.01"
+            width="1.8"
+            align="center"
+            color="#000000">
+          </a-text>
+
+          <!-- ↑ボタン -->
+          <a-plane 
+            id="roomUpButton"
+            class="ui-button"
+            width="0.2" 
+            height="0.15"
+            color="#5DADE2"
+            position="0.35 0.05 0"
+            ui-button="action: roomUp">
+          </a-plane>
+          <a-text 
+            value="^"
+            position="0.35 0.05 0.01"
+            width="1.8"
+            align="center"
+            color="#FFFFFF">
+          </a-text>
+
+          <!-- ↓ボタン -->
+          <a-plane 
+            id="roomDownButton"
+            class="ui-button"
+            width="0.2" 
+            height="0.15"
+            color="#5DADE2"
+            position="0.35 -0.13 0"
+            ui-button="action: roomDown">
+          </a-plane>
+          <a-text 
+            value="v"
+            position="0.35 -0.13 0.01"
+            width="1.8"
+            align="center"
+            color="#FFFFFF">
+          </a-text>
+        </a-entity>
+
+        <!-- Debug Mode -->
+        <a-entity position="0 0.2 0.01">
+          <a-text 
+            value="DebugMode"
+            position="-0.65 0 0"
+            width="1.5"
+            align="left"
+            color="#FFFFFF">
+          </a-text>
+          <a-plane 
+            id="debugToggle"
+            class="ui-toggle"
+            width="0.4" 
+            height="0.15"
+            color="#95A5A6"
+            position="0.25 0 0"
+            ui-toggle>
+          </a-plane>
+          <a-plane 
+            id="debugToggleHandle"
+            width="0.18" 
+            height="0.12"
+            color="#FFFFFF"
+            position="0.14 0 0.01">
+          </a-plane>
+        </a-entity>
+
+        <!-- 区切り線 -->
+        <a-plane 
+          width="1.3" 
+          height="0.01"
+          color="#FFFFFF"
+          position="0 -0.05 0.01">
+        </a-plane>
+
+        <!-- Connect ボタン -->
+        <a-plane 
+          id="connectButton"
+          class="ui-button"
+          width="1.2" 
+          height="0.2"
+          color="#27AE60"
+          position="0 -0.35 0.01"
+          ui-button="action: connect">
+        </a-plane>
         <a-text 
-          value="SKYWAY"
-          position="0 0.6 0.01"
+          value="Connect"
+          position="0 -0.35 0.02"
           width="1.6"
           align="center"
-          color="#3498DB">
+          color="#FFFFFF">
         </a-text>
 
+        <!-- Disconnect ボタン -->
+        <a-plane 
+          id="disconnectButton"
+          class="ui-button"
+          width="1.2" 
+          height="0.2"
+          color="#E74C3C"
+          position="0 -0.65 0.01"
+          ui-button="action: disconnect">
+        </a-plane>
+        <a-text 
+          value="Disconnect"
+          position="0 -0.65 0.02"
+          width="1.6"
+          align="center"
+          color="#FFFFFF">
+        </a-text>
+
+      </a-entity>
+
+      <!-- ========== 正面パネル（中央） ========== -->
+      <a-entity id="centerPanel" position="0 0 0">
+        <!-- 背景パネル -->
+        <a-plane 
+          width="2.0" 
+          height="2.0"
+          color="#7F8C8D"
+          opacity="0.7"
+          position="0 0 0">
+        </a-plane>
+
         <!-- ID入力フィールド -->
-        <a-entity position="0 0.35 0.01">
+        <a-entity position="0 0.75 0.01">
           <a-text 
             value="ID"
-            position="-0.8 0 0"
+            position="-0.9 0 0"
             width="1.5"
             align="left"
             color="#FFFFFF">
@@ -119,226 +285,89 @@
           <a-plane 
             id="idInputField"
             class="ui-input"
-            width="1.3" 
+            width="1.4" 
             height="0.15"
             color="#FFFFFF"
-            position="0.15 0 0"
+            position="0.1 0 0"
             ui-input="field: id">
           </a-plane>
           <a-text 
             id="idInputText"
-            value="app-id"
-            position="-0.5 0 0.01"
+            value="*************"
+            position="-0.58 0 0.01"
             width="1.4"
             align="left"
             color="#000000">
           </a-text>
         </a-entity>
 
-        <!-- PassKey入力フィールド -->
-        <a-entity position="0 0.1 0.01">
+        <!-- SECRET入力フィールド -->
+        <a-entity position="0 0.5 0.01">
           <a-text 
-            value="PassKey"
-            position="-0.8 0 0"
+            value="SECRET"
+            position="-0.9 0 0"
             width="1.5"
             align="left"
             color="#FFFFFF">
           </a-text>
           <a-plane 
-            id="passkeyInputField"
+            id="secretInputField"
             class="ui-input"
-            width="1.3" 
+            width="1.4" 
             height="0.15"
             color="#FFFFFF"
-            position="0.15 0 0"
-            ui-input="field: passkey">
+            position="0.1 0 0"
+            ui-input="field: secret">
           </a-plane>
           <a-text 
-            id="passkeyInputText"
-            value="secret-key"
-            position="-0.5 0 0.01"
+            id="secretInputText"
+            value="*************"
+            position="-0.58 0 0.01"
             width="1.4"
             align="left"
             color="#000000">
           </a-text>
         </a-entity>
 
-        <!-- Room Select -->
-        <a-entity position="0 -0.15 0.01">
-          <a-text 
-            value="Room"
-            position="-0.8 0 0"
-            width="1.5"
-            align="left"
-            color="#FFFFFF">
-          </a-text>
-          
-          <a-entity position="-0.35 0 0">
-            <!-- room1 -->
-            <a-plane 
-              id="room1Button"
-              class="ui-button"
-              width="0.35" 
-              height="0.15"
-              color="#27AE60"
-              position="0 0 0"
-              ui-button>
-            </a-plane>
-            <a-text 
-              value="1"
-              position="0 0 0.01"
-              width="1.4"
-              align="center"
-              color="#FFFFFF">
-            </a-text>
-
-            <!-- room2 -->
-            <a-plane 
-              id="room2Button"
-              class="ui-button"
-              width="0.35" 
-              height="0.15"
-              color="#27AE60"
-              position="0.4 0 0"
-              ui-button>
-            </a-plane>
-            <a-text 
-              value="2"
-              position="0.4 0 0.01"
-              width="1.4"
-              align="center"
-              color="#FFFFFF">
-            </a-text>
-
-            <!-- room3 -->
-            <a-plane 
-              id="room3Button"
-              class="ui-button"
-              width="0.35" 
-              height="0.15"
-              color="#27AE60"
-              position="0.8 0 0"
-              ui-button>
-            </a-plane>
-            <a-text 
-              value="3"
-              position="0.8 0 0.01"
-              width="1.4"
-              align="center"
-              color="#FFFFFF">
-            </a-text>
-          </a-entity>
-        </a-entity>
-
-        <!-- Connect/Disconnect ボタン -->
-        <a-entity position="0 -0.5 0.01">
-          <!-- Connect -->
-          <a-plane 
-            id="connectButton"
-            class="ui-button"
-            width="0.8" 
-            height="0.18"
-            color="#3498DB"
-            position="-0.45 0 0"
-            ui-button>
-          </a-plane>
-          <a-text 
-            value="Connect"
-            position="-0.45 0 0.01"
-            width="1.5"
-            align="center"
-            color="#FFFFFF">
-          </a-text>
-
-          <!-- Disconnect -->
-          <a-plane 
-            id="disconnectButton"
-            class="ui-button"
-            width="0.8" 
-            height="0.18"
-            color="#E74C3C"
-            position="0.45 0 0"
-            ui-button>
-          </a-plane>
-          <a-text 
-            value="Disconnect"
-            position="0.45 0 0.01"
-            width="1.5"
-            align="center"
-            color="#FFFFFF">
-          </a-text>
-        </a-entity>
-
-      </a-entity>
-
-      <!-- ========== 中央パネル: 接続・映像情報 ========== -->
-      <a-entity id="infoPanel"  position="0 0 0.3" rotation="0 0 0">
-        <!-- 背景パネル -->
+        <!-- 区切り線 -->
         <a-plane 
           width="1.8" 
-          height="1.8"
-          color="#34495E"
-          opacity="0.9"
-          position="0 0 0">
+          height="0.01"
+          color="#FFFFFF"
+          position="0 0.28 0.01">
         </a-plane>
 
-        <!-- タイトル -->
-        <a-text 
-          value="INFO"
-          position="0 0.6 0.01"
-          width="1.6"
-          align="center"
-          color="#E67E22">
-        </a-text>
-
-        <!-- Connection ID -->
-        <a-entity position="0 0.35 0.01">
+        <!-- USERID表示 -->
+        <a-entity position="0 0.05 0.01">
           <a-text 
-            value="Connection ID"
-            position="-0.8 0 0"
+            value="USERID"
+            position="-0.9 0 0"
             width="1.5"
             align="left"
-            color="#BDC3C7">
+            color="#FFFFFF">
           </a-text>
           <a-text 
-            id="connectionIdText"
-            value="none"
-            position="-0.8 -0.12 0"
+            id="useridText"
+            value="*************"
+            position="-0.05 0 0"
             width="1.4"
             align="left"
-            color="#2ECC71">
+            color="#FFFFFF">
           </a-text>
         </a-entity>
 
-        <!-- Separator Line -->
-        <a-plane 
-          width="1.6" 
-          height="0.01"
-          color="#7F8C8D"
-          position="0 0.1 0.01">
-        </a-plane>
-
-        <!-- Video Info Title -->
-        <a-text 
-          value="Video Stream"
-          position="0 -0.05 0.01"
-          width="1.5"
-          align="center"
-          color="#BDC3C7">
-        </a-text>
-
-        <!-- Resolution -->
-        <a-entity position="0 -0.25 0.01">
+        <!-- 解像度表示 -->
+        <a-entity position="0 -0.2 0.01">
           <a-text 
             value="Resolution:"
-            position="-0.8 0 0"
+            position="-0.9 0 0"
             width="1.5"
             align="left"
-            color="#BDC3C7">
+            color="#FFFFFF">
           </a-text>
           <a-text 
             id="resolutionText"
-            value="1920x1080"
+            value="1080x720"
             position="0.1 0 0"
             width="1.4"
             align="left"
@@ -346,14 +375,14 @@
           </a-text>
         </a-entity>
 
-        <!-- FPS -->
-        <a-entity position="0 -0.42 0.01">
+        <!-- FPS表示 -->
+        <a-entity position="0 -0.45 0.01">
           <a-text 
             value="FPS:"
-            position="-0.8 0 0"
+            position="-0.9 0 0"
             width="1.5"
             align="left"
-            color="#BDC3C7">
+            color="#FFFFFF">
           </a-text>
           <a-text 
             id="fpsText"
@@ -365,77 +394,25 @@
           </a-text>
         </a-entity>
 
-        <!-- Separator Line -->
-        <a-plane 
-          width="1.6" 
-          height="0.01"
-          color="#7F8C8D"
-          position="0 -0.55 0.01">
-        </a-plane>
-
-        <!-- Debug Mode -->
-        <a-entity position="0 -0.65 0.01">
-          <a-text 
-            value="Debug Mode"
-            position="-0.8 0 0"
-            width="1.5"
-            align="left"
-            color="#BDC3C7">
-          </a-text>
-          <a-plane 
-            id="debugToggle"
-            class="ui-toggle"
-            width="0.4" 
-            height="0.15"
-            color="#95A5A6"
-            position="0.4 0 0"
-            ui-toggle>
-          </a-plane>
-          <a-plane 
-            id="debugToggleHandle"
-            width="0.18" 
-            height="0.12"
-            color="#FFFFFF"
-            position="0.29 0 0.01">
-          </a-plane>
-        </a-entity>
-
       </a-entity>
 
-      <!-- ========== 右パネル: 使い方ガイド ========== -->
-      <a-entity id="guidePanel"  position="2 0 1" rotation="0 -45 0">
+      <!-- ========== 右パネル ========== -->
+      <a-entity id="rightPanel" position="2 0 1" rotation="0 -45 0">
         <!-- 背景パネル -->
         <a-plane 
-          width="1.8" 
-          height="1.8"
-          color="#16A085"
-          opacity="0.9"
+          width="1.5" 
+          height="2.0"
+          color="#7F8C8D"
+          opacity="0.7"
           position="0 0 0">
         </a-plane>
 
-        <!-- タイトル -->
-        <a-text 
-          value="GUIDE"
-          position="0 0.6 0.01"
-          width="1.6"
-          align="center"
-          color="#F1C40F">
-        </a-text>
-
-        <!-- ガイドテキスト -->
-        <a-text 
-          value="Controls:\n\nX Button (Left)\n- Switch Mode\n\nTrigger (Right)\n- Click UI\n\nMode:\n- Settings: Config\n- Control: View"
-          position="-0.8 0.2 0.01"
-          width="1.4"
-          align="left"
-          color="#FFFFFF"
-          line-height="55">
-        </a-text>
+        <!-- 空のパネル -->
 
       </a-entity>
 
       <!-- ========== 仮想キーボード（下部中央） ========== -->
-      <a-entity id="virtualKeyboard" visible="false" position="0 -2 0" rotation="-20 0 0">
+      <a-entity id="virtualKeyboard" visible="false" position="0 -1.3 0.5">
         
         <!-- 背景パネル -->
         <a-plane 

@@ -8,19 +8,20 @@
 
 // UI状態管理
 window.uiState = {
-  selectedRoom: 'room1',
+  roomNumber: 1,  // 1-9
   debugMode: false,
   connected: false,
   keyboardVisible: false,
   currentInputField: null,  // 現在編集中のフィールド
   
   // 入力値
-  idValue: 'app-id',
-  passkeyValue: 'secret-key',
+  passValue: '',
+  idValue: '*************',
+  secretValue: '*************',
   
-  // 接続情報
-  connectionId: 'none',
-  resolution: '1920x1080',
+  // 表示情報
+  userid: '*************',
+  resolution: '1080x720',
   fps: '30'
 };
 
@@ -30,7 +31,7 @@ window.uiState = {
  */
 AFRAME.registerComponent('ui-input', {
   schema: {
-    field: { type: 'string', default: 'default' }  // id, passkey など
+    field: { type: 'string', default: 'default' }  // pass, id, secret など
   },
   
   init: function() {
@@ -126,20 +127,24 @@ AFRAME.registerComponent('ui-key', {
 
 /**
  * A-Frameコンポーネント: ui-button
- * シンプルなボタン機能
+ * シンプルなボタン機能（action属性で動作を指定）
  */
 AFRAME.registerComponent('ui-button', {
+  schema: {
+    action: { type: 'string', default: '' }  // connect, disconnect, roomUp, roomDown
+  },
+  
   init: function() {
     this.originalColor = this.el.getAttribute('color');
     
-    // ボタンの種類に応じてホバー色を設定
-    const id = this.el.id;
-    if (id.startsWith('room')) {
+    // アクションの種類に応じてホバー色を設定
+    const action = this.data.action;
+    if (action === 'connect') {
       this.hoverColor = '#2ECC71';  // 緑系
-    } else if (id === 'connectButton') {
-      this.hoverColor = '#5DADE2';  // 青系
-    } else if (id === 'disconnectButton') {
+    } else if (action === 'disconnect') {
       this.hoverColor = '#EC7063';  // 赤系
+    } else if (action === 'roomUp' || action === 'roomDown') {
+      this.hoverColor = '#85C1E9';  // 青系
     } else {
       this.hoverColor = '#5DADE2';  // デフォルト
     }
@@ -151,7 +156,7 @@ AFRAME.registerComponent('ui-button', {
       if (!this.isHovered) {
         this.isHovered = true;
         this.el.setAttribute('color', this.hoverColor);
-        console.log('[UI BUTTON] Hover:', this.el.id);
+        console.log('[UI BUTTON] Hover:', this.data.action);
       }
     });
     
@@ -159,7 +164,7 @@ AFRAME.registerComponent('ui-button', {
       if (this.isHovered) {
         this.isHovered = false;
         this.el.setAttribute('color', this.originalColor);
-        console.log('[UI BUTTON] Hover cleared:', this.el.id);
+        console.log('[UI BUTTON] Hover cleared:', this.data.action);
       }
     });
     
@@ -168,49 +173,51 @@ AFRAME.registerComponent('ui-button', {
       this.handleClick();
     });
     
-    console.log('[UI BUTTON] Initialized:', this.el.id);
+    console.log('[UI BUTTON] Initialized:', this.data.action);
   },
   
   handleClick: function() {
-    const id = this.el.id;
-    console.log(`[UI BUTTON] ${id} clicked`);
+    const action = this.data.action;
+    console.log(`[UI BUTTON] ${action} clicked`);
     
     // キーボードが表示されている場合は閉じる
     if (window.uiState.keyboardVisible) {
       window.hideKeyboard();
     }
     
-    // ボタンIDに応じた処理
-    if (id.startsWith('room')) {
-      const roomName = id.replace('Button', '');
-      window.uiState.selectedRoom = roomName;
-      console.log(`[UI] Selected room: ${roomName}`);
-      
-      // 視覚的フィードバック：選択されたボタンを明るくする
-      this.highlightSelected();
-    } else if (id === 'connectButton') {
+    // アクションに応じた処理
+    if (action === 'connect') {
       console.log('[UI] Connect button clicked');
       window.uiState.connected = true;
       // TODO: 実際の接続処理
-    } else if (id === 'disconnectButton') {
+    } else if (action === 'disconnect') {
       console.log('[UI] Disconnect button clicked');
       window.uiState.connected = false;
       // TODO: 実際の切断処理
+    } else if (action === 'roomUp') {
+      this.changeRoom(1);
+    } else if (action === 'roomDown') {
+      this.changeRoom(-1);
     }
   },
   
-  highlightSelected: function() {
-    // すべてのroomボタンを元の色に戻す
-    ['room1Button', 'room2Button', 'room3Button'].forEach(btnId => {
-      const btn = document.getElementById(btnId);
-      if (btn && btn.id !== this.el.id) {
-        btn.setAttribute('color', '#27AE60');
-      }
-    });
+  changeRoom: function(delta) {
+    // Room番号を変更（1-9の範囲）
+    let newRoom = window.uiState.roomNumber + delta;
     
-    // 選択されたボタンを明るくする
-    this.originalColor = '#2ECC71';
-    this.el.setAttribute('color', '#2ECC71');
+    // 範囲チェック
+    if (newRoom < 1) newRoom = 9;
+    if (newRoom > 9) newRoom = 1;
+    
+    window.uiState.roomNumber = newRoom;
+    
+    // 表示を更新
+    const textEl = document.getElementById('roomNumberText');
+    if (textEl) {
+      textEl.setAttribute('value', newRoom.toString());
+    }
+    
+    console.log('[UI] Room number changed to:', newRoom);
   }
 });
 
@@ -257,7 +264,7 @@ AFRAME.registerComponent('ui-toggle', {
     
     // ハンドル位置を変更
     if (this.handle) {
-      const newX = this.isOn ? 0.51 : 0.29;
+      const newX = this.isOn ? 0.36 : 0.14;
       this.handle.setAttribute('position', `${newX} 0 0.01`);
     }
     
@@ -330,12 +337,15 @@ window.handleKeyPress = function(key) {
   let currentValue = '';
   let textElementId = '';
   
-  if (currentField === 'id') {
+  if (currentField === 'pass') {
+    currentValue = window.uiState.passValue;
+    textElementId = 'passInputText';
+  } else if (currentField === 'id') {
     currentValue = window.uiState.idValue;
     textElementId = 'idInputText';
-  } else if (currentField === 'passkey') {
-    currentValue = window.uiState.passkeyValue;
-    textElementId = 'passkeyInputText';
+  } else if (currentField === 'secret') {
+    currentValue = window.uiState.secretValue;
+    textElementId = 'secretInputText';
   }
   
   // キー入力処理
@@ -354,10 +364,12 @@ window.handleKeyPress = function(key) {
   }
   
   // 状態を更新
-  if (currentField === 'id') {
+  if (currentField === 'pass') {
+    window.uiState.passValue = currentValue;
+  } else if (currentField === 'id') {
     window.uiState.idValue = currentValue;
-  } else if (currentField === 'passkey') {
-    window.uiState.passkeyValue = currentValue;
+  } else if (currentField === 'secret') {
+    window.uiState.secretValue = currentValue;
   }
   
   // 表示を更新
@@ -370,14 +382,14 @@ window.handleKeyPress = function(key) {
 };
 
 /**
- * グローバル関数: 接続情報を更新
+ * グローバル関数: 表示情報を更新
  */
-window.updateConnectionInfo = function(connectionId, resolution, fps) {
+window.updateDisplayInfo = function(userid, resolution, fps) {
   // 状態を更新
-  if (connectionId !== undefined) {
-    window.uiState.connectionId = connectionId;
-    const el = document.getElementById('connectionIdText');
-    if (el) el.setAttribute('value', connectionId);
+  if (userid !== undefined) {
+    window.uiState.userid = userid;
+    const el = document.getElementById('useridText');
+    if (el) el.setAttribute('value', userid);
   }
   
   if (resolution !== undefined) {
@@ -392,7 +404,7 @@ window.updateConnectionInfo = function(connectionId, resolution, fps) {
     if (el) el.setAttribute('value', fps);
   }
   
-  console.log('[UI] Connection info updated:', window.uiState.connectionId, window.uiState.resolution, window.uiState.fps);
+  console.log('[UI] Display info updated:', window.uiState.userid, window.uiState.resolution, window.uiState.fps);
 };
 
 // グローバルに公開
@@ -400,6 +412,6 @@ window.uiState = window.uiState;
 window.showKeyboard = window.showKeyboard;
 window.hideKeyboard = window.hideKeyboard;
 window.handleKeyPress = window.handleKeyPress;
-window.updateConnectionInfo = window.updateConnectionInfo;
+window.updateDisplayInfo = window.updateDisplayInfo;
 
 console.log('[UI] UI components and functions loaded');
