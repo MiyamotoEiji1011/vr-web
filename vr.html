@@ -11,9 +11,6 @@
   <!-- A-Frame Extras -->
   <script src="https://cdn.jsdelivr.net/npm/aframe-extras@6.1.1/dist/aframe-extras.min.js"></script>
 
-  <!-- A-Frame GUI -->
-  <script src="https://cdn.jsdelivr.net/gh/rdub80/aframe-gui@master/dist/aframe-gui.min.js"></script>
-
   <!-- SkyWay SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@skyway-sdk/room/dist/skyway_room-latest.js"></script>
 
@@ -69,167 +66,204 @@
         </a-entity>
 
         <!-- ========== 設定モード用UI ========== -->
-        <a-entity id="settingsModeUI" position="0 0.2 -1.5">
+        <a-entity id="settingsModeUI" position="0 0 -1.8">
+          
           <!-- 背景パネル -->
-          <a-gui-flex-container 
-            id="settingsPanel"
-            flex-direction="column" 
-            justify-content="center" 
-            align-items="normal" 
-            component-padding="0.05" 
-            opacity="0.8" 
-            width="2.5" 
-            height="2.0"
-            panel-color="#444444"
-            panel-rounded="0.05"
+          <a-plane 
+            width="2.4" 
+            height="2.2"
+            color="#444444"
+            opacity="0.85"
             position="0 0 0">
+          </a-plane>
 
-            <!-- タイトル -->
-            <a-gui-label 
-              width="2.4" 
-              height="0.15"
-              value="VR SETTINGS"
-              font-family="Roboto"
-              font-size="0.15"
-              font-color="#FFFFFF"
-              background-color="#333333"
-              margin="0 0 0.05 0">
-            </a-gui-label>
+          <!-- タイトル -->
+          <a-text 
+            value="VR SETTINGS"
+            position="0 0.95 0.01"
+            width="2.2"
+            align="center"
+            color="#FFFFFF">
+          </a-text>
 
-            <!-- パス入力 -->
-            <a-gui-label 
-              width="2.4" 
-              height="0.1"
-              value="Pass"
-              font-size="0.08"
-              font-color="#FFFFFF"
-              background-color="transparent"
-              margin="0 0 0.02 0">
-            </a-gui-label>
+          <!-- Pass ラベル -->
+          <a-text 
+            value="Pass"
+            position="-1.0 0.7 0.01"
+            width="2.2"
+            align="left"
+            color="#FFFFFF">
+          </a-text>
 
-            <a-gui-input
-              id="passInput"
-              width="2.4"
-              height="0.15"
-              value=""
-              font-size="0.08"
-              font-color="#000000"
-              background-color="#FFFFFF"
-              margin="0 0 0.1 0">
-            </a-gui-input>
+          <!-- Pass 入力フィールド（表示のみ） -->
+          <a-plane 
+            width="2.0" 
+            height="0.2"
+            color="#FFFFFF"
+            position="0 0.5 0.01">
+          </a-plane>
+          <a-text 
+            id="passInput"
+            value=""
+            position="-0.95 0.5 0.02"
+            width="2.2"
+            align="left"
+            color="#000000">
+          </a-text>
 
-            <!-- Room選択 -->
-            <a-gui-label 
-              width="2.4" 
-              height="0.1"
-              value="Room Select"
-              font-size="0.08"
-              font-color="#FFFFFF"
-              background-color="transparent"
-              margin="0 0 0.02 0">
-            </a-gui-label>
+          <!-- Room Select ラベル -->
+          <a-text 
+            value="Room Select"
+            position="-1.0 0.25 0.01"
+            width="2.2"
+            align="left"
+            color="#FFFFFF">
+          </a-text>
 
-            <!-- Room選択ボタン群 -->
-            <a-entity>
-              <a-gui-button
-                id="room1Button"
-                width="0.75"
-                height="0.15"
-                value="room1"
-                font-size="0.08"
-                margin="0 0.05 0.1 0"
-                background-color="#4CAF50"
-                hover-color="#66BB6A"
-                active-color="#388E3C">
-              </a-gui-button>
+          <!-- Room ボタン -->
+          <a-entity position="-0.65 0 0.01">
+            <!-- room1 -->
+            <a-plane 
+              id="room1Button"
+              class="ui-button"
+              width="0.6" 
+              height="0.2"
+              color="#4CAF50"
+              position="0 0 0"
+              ui-button>
+            </a-plane>
+            <a-text 
+              value="room1"
+              position="0 0 0.01"
+              width="1.8"
+              align="center"
+              color="#FFFFFF">
+            </a-text>
 
-              <a-gui-button
-                id="room2Button"
-                width="0.75"
-                height="0.15"
-                value="room2"
-                font-size="0.08"
-                margin="0 0.05 0.1 0"
-                background-color="#4CAF50"
-                hover-color="#66BB6A"
-                active-color="#388E3C">
-              </a-gui-button>
+            <!-- room2 -->
+            <a-plane 
+              id="room2Button"
+              class="ui-button"
+              width="0.6" 
+              height="0.2"
+              color="#4CAF50"
+              position="0.7 0 0"
+              ui-button>
+            </a-plane>
+            <a-text 
+              value="room2"
+              position="0.7 0 0.01"
+              width="1.8"
+              align="center"
+              color="#FFFFFF">
+            </a-text>
 
-              <a-gui-button
-                id="room3Button"
-                width="0.75"
-                height="0.15"
-                value="room3"
-                font-size="0.08"
-                margin="0 0 0.1 0"
-                background-color="#4CAF50"
-                hover-color="#66BB6A"
-                active-color="#388E3C">
-              </a-gui-button>
-            </a-entity>
+            <!-- room3 -->
+            <a-plane 
+              id="room3Button"
+              class="ui-button"
+              width="0.6" 
+              height="0.2"
+              color="#4CAF50"
+              position="1.4 0 0"
+              ui-button>
+            </a-plane>
+            <a-text 
+              value="room3"
+              position="1.4 0 0.01"
+              width="1.8"
+              align="center"
+              color="#FFFFFF">
+            </a-text>
+          </a-entity>
 
-            <!-- デバッグモード切り替え -->
-            <a-gui-label 
-              width="2.4" 
-              height="0.1"
-              value="Debug Mode"
-              font-size="0.08"
-              font-color="#FFFFFF"
-              background-color="transparent"
-              margin="0 0 0.02 0">
-            </a-gui-label>
+          <!-- Debug Mode ラベル -->
+          <a-text 
+            value="Debug Mode"
+            position="-1.0 -0.3 0.01"
+            width="2.2"
+            align="left"
+            color="#FFFFFF">
+          </a-text>
 
-            <a-gui-toggle
+          <!-- Debug Toggle -->
+          <a-entity position="-0.9 -0.5 0.01">
+            <a-plane 
               id="debugToggle"
-              width="0.3"
-              height="0.15"
-              font-size="0.08"
-              margin="0 0 0.1 0"
-              background-color="#CCCCCC"
-              toggle-color="#2196F3"
-              active="false">
-            </a-gui-toggle>
+              class="ui-toggle"
+              width="0.4" 
+              height="0.2"
+              color="#CCCCCC"
+              position="0 0 0"
+              ui-toggle>
+            </a-plane>
+            <a-plane 
+              id="debugToggleHandle"
+              width="0.18" 
+              height="0.16"
+              color="#FFFFFF"
+              position="-0.1 0 0.01">
+            </a-plane>
+          </a-entity>
 
-            <!-- 接続/切断ボタン -->
-            <a-entity>
-              <a-gui-button
-                id="connectButton"
-                width="1.15"
-                height="0.2"
-                value="Connect"
-                font-size="0.1"
-                margin="0 0.1 0 0"
-                background-color="#2196F3"
-                hover-color="#42A5F5"
-                active-color="#1976D2">
-              </a-gui-button>
+          <!-- Connect/Disconnect ボタン -->
+          <a-entity position="0 -0.85 0.01">
+            <!-- Connect -->
+            <a-plane 
+              id="connectButton"
+              class="ui-button"
+              width="1.0" 
+              height="0.25"
+              color="#2196F3"
+              position="-0.52 0 0"
+              ui-button>
+            </a-plane>
+            <a-text 
+              value="Connect"
+              position="-0.52 0 0.01"
+              width="2.2"
+              align="center"
+              color="#FFFFFF">
+            </a-text>
 
-              <a-gui-button
-                id="disconnectButton"
-                width="1.15"
-                height="0.2"
-                value="Disconnect"
-                font-size="0.1"
-                margin="0 0 0 0"
-                background-color="#F44336"
-                hover-color="#EF5350"
-                active-color="#C62828">
-              </a-gui-button>
-            </a-entity>
+            <!-- Disconnect -->
+            <a-plane 
+              id="disconnectButton"
+              class="ui-button"
+              width="1.0" 
+              height="0.25"
+              color="#F44336"
+              position="0.52 0 0"
+              ui-button>
+            </a-plane>
+            <a-text 
+              value="Disconnect"
+              position="0.52 0 0.01"
+              width="2.2"
+              align="center"
+              color="#FFFFFF">
+            </a-text>
+          </a-entity>
 
-          </a-gui-flex-container>
         </a-entity>
 
       </a-entity>
 
       <!-- 6DoF コントローラー: Oculus Touch -->
+      <!-- 左コントローラー -->
       <a-entity id="leftOculus" 
                 oculus-touch-controls="hand: left; model: true" 
-                controller-listener="hand: left">
+                controller-listener="hand: left"
+                raycaster="objects: .ui-button, .ui-toggle; far: 10; showLine: true; lineColor: red; lineOpacity: 0.5"
+                controller-cursor>
       </a-entity>
+      
+      <!-- 右コントローラー -->
       <a-entity id="rightOculus" 
                 oculus-touch-controls="hand: right; model: true" 
-                controller-listener="hand: right">
+                controller-listener="hand: right"
+                raycaster="objects: .ui-button, .ui-toggle; far: 10; showLine: true; lineColor: red; lineOpacity: 0.5"
+                controller-cursor>
       </a-entity>
     </a-entity>
 

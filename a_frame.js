@@ -1,7 +1,7 @@
 /**
  * a_frame.js
  * A-Frameカスタムコンポーネントとコントローラー管理
- * モード切り替え機能、UI表示制御を含む（Oculus Touchのみ対応）
+ * モード切り替え機能、VRコントローラーでのUI操作を含む（Oculus Touchのみ対応）
  */
 
 /* global AFRAME, THREE */
@@ -33,11 +33,192 @@ window.controllerStates = {
   }
 };
 
+// UI状態管理
+window.uiState = {
+  selectedRoom: 'room1',
+  debugMode: false,
+  connected: false
+};
+
 // モード切り替え状態管理（エッジ検出用）
 const modeToggleState = {
   xButtonPressed: false,  // Xボタンの現在の状態
   xKeyPressed: false      // Xキーの現在の状態
 };
+
+/**
+ * A-Frameコンポーネント: controller-cursor
+ * コントローラーのトリガーでレイキャスト上のオブジェクトをクリック
+ */
+AFRAME.registerComponent('controller-cursor', {
+  init: function() {
+    this.hoveredEl = null;
+    this.triggerPressed = false;
+    
+    // レイキャスターのイベントをリッスン
+    this.el.addEventListener('raycaster-intersection', (evt) => {
+      // 複数の交差がある場合、最も近いものを取得
+      if (evt.detail.els && evt.detail.els.length > 0) {
+        this.hoveredEl = evt.detail.els[0];
+        console.log('[CONTROLLER CURSOR] Hovering:', this.hoveredEl.id || this.hoveredEl.className);
+      }
+    });
+    
+    this.el.addEventListener('raycaster-intersection-cleared', (evt) => {
+      console.log('[CONTROLLER CURSOR] Hover cleared');
+      this.hoveredEl = null;
+    });
+    
+    // トリガーボタンのイベントをリッスン
+    this.el.addEventListener('triggerdown', () => {
+      if (!this.triggerPressed) {
+        this.triggerPressed = true;
+        this.onClick();
+      }
+    });
+    
+    this.el.addEventListener('triggerup', () => {
+      this.triggerPressed = false;
+    });
+    
+    console.log('[CONTROLLER CURSOR] Initialized for', this.el.id);
+  },
+  
+  onClick: function() {
+    if (this.hoveredEl) {
+      console.log('[CONTROLLER CURSOR] Clicking on:', this.hoveredEl.id || this.hoveredEl.className);
+      
+      // clickイベントを発火
+      this.hoveredEl.emit('click');
+    } else {
+      console.log('[CONTROLLER CURSOR] No element hovered');
+    }
+  }
+});
+
+/**
+ * A-Frameコンポーネント: ui-button
+ * シンプルなボタン機能
+ */
+AFRAME.registerComponent('ui-button', {
+  init: function() {
+    this.originalColor = this.el.getAttribute('color');
+    this.hoverColor = '#66BB6A'; // ホバー時の色
+    this.isHovered = false;
+    
+    // レイキャストのホバーイベント
+    this.el.addEventListener('raycaster-intersected', () => {
+      if (!this.isHovered) {
+        this.isHovered = true;
+        this.el.setAttribute('color', this.hoverColor);
+        console.log('[UI BUTTON] Hover:', this.el.id);
+      }
+    });
+    
+    this.el.addEventListener('raycaster-intersected-cleared', () => {
+      if (this.isHovered) {
+        this.isHovered = false;
+        this.el.setAttribute('color', this.originalColor);
+        console.log('[UI BUTTON] Hover cleared:', this.el.id);
+      }
+    });
+    
+    // クリックイベント
+    this.el.addEventListener('click', () => {
+      this.handleClick();
+    });
+    
+    console.log('[UI BUTTON] Initialized:', this.el.id);
+  },
+  
+  handleClick: function() {
+    const id = this.el.id;
+    console.log(`[UI BUTTON] ${id} clicked`);
+    
+    // ボタンIDに応じた処理
+    if (id.startsWith('room')) {
+      const roomName = id.replace('Button', '');
+      window.uiState.selectedRoom = roomName;
+      console.log(`[UI] Selected room: ${roomName}`);
+      
+      // 視覚的フィードバック：選択されたボタンを明るくする
+      this.highlightSelected();
+    } else if (id === 'connectButton') {
+      console.log('[UI] Connect button clicked');
+      window.uiState.connected = true;
+    } else if (id === 'disconnectButton') {
+      console.log('[UI] Disconnect button clicked');
+      window.uiState.connected = false;
+    }
+  },
+  
+  highlightSelected: function() {
+    // すべてのroomボタンを元の色に戻す
+    ['room1Button', 'room2Button', 'room3Button'].forEach(btnId => {
+      const btn = document.getElementById(btnId);
+      if (btn && btn.id !== this.el.id) {
+        btn.setAttribute('color', '#4CAF50');
+      }
+    });
+    
+    // 選択されたボタンを明るくする
+    this.originalColor = '#66BB6A';
+    this.el.setAttribute('color', '#66BB6A');
+  }
+});
+
+/**
+ * A-Frameコンポーネント: ui-toggle
+ * シンプルなトグル機能
+ */
+AFRAME.registerComponent('ui-toggle', {
+  init: function() {
+    this.isOn = false;
+    this.handle = document.getElementById('debugToggleHandle');
+    this.isHovered = false;
+    
+    // レイキャストのホバーイベント
+    this.el.addEventListener('raycaster-intersected', () => {
+      if (!this.isHovered) {
+        this.isHovered = true;
+        console.log('[UI TOGGLE] Hover');
+      }
+    });
+    
+    this.el.addEventListener('raycaster-intersected-cleared', () => {
+      if (this.isHovered) {
+        this.isHovered = false;
+        console.log('[UI TOGGLE] Hover cleared');
+      }
+    });
+    
+    // クリックイベント
+    this.el.addEventListener('click', () => {
+      this.toggle();
+    });
+    
+    console.log('[UI TOGGLE] Initialized');
+  },
+  
+  toggle: function() {
+    this.isOn = !this.isOn;
+    
+    // ハンドル位置を変更
+    if (this.handle) {
+      const newX = this.isOn ? 0.1 : -0.1;
+      this.handle.setAttribute('position', `${newX} 0 0.01`);
+    }
+    
+    // 背景色を変更
+    const newColor = this.isOn ? '#2196F3' : '#CCCCCC';
+    this.el.setAttribute('color', newColor);
+    
+    // 状態を更新
+    window.uiState.debugMode = this.isOn;
+    
+    console.log(`[UI TOGGLE] Debug mode: ${this.isOn ? 'ON' : 'OFF'}`);
+  }
+});
 
 /**
  * A-Frameコンポーネント: rotation-reader
@@ -110,7 +291,7 @@ AFRAME.registerComponent('controller-listener', {
    * Oculus Touchのイベントをセットアップ
    */
   setupOculusEvents: function(state, hand) {
-    // Trigger
+    // Trigger - controller-cursorで使用されるため、ここでは状態更新のみ
     this.el.addEventListener('triggerdown', () => { state.trigger = 1; });
     this.el.addEventListener('triggerup', () => { state.trigger = 0; });
 
