@@ -79,8 +79,13 @@
       <a-entity id="rightOculus" 
                 oculus-touch-controls="hand: right; model: true" 
                 controller-listener="hand: right"
-                raycaster="objects: .ui-button, .ui-toggle, .ui-input; origin: 0 0 0; direction: 0 -1 -1; far: 3; showLine: true; lineColor: white; lineOpacity: 3.0"
-                controller-cursor>
+                raycaster="objects: .ui-button, .ui-toggle, .ui-input; origin: 0 0 0; direction: 0 -1 -1; far: 3; showLine: false"
+                controller-cursor
+                dynamic-ray>
+        <!-- 手動で制御するRayライン -->
+        <a-entity id="rayLine"
+                  line="start: 0 0 0; end: 0 -3 -3; color: white; opacity: 1.0">
+        </a-entity>
       </a-entity>
     </a-entity>
 

@@ -2,6 +2,7 @@
  * a_frame.js
  * A-Frameカスタムコンポーネントとコントローラー管理
  * モード切り替え機能、VRコントローラー管理を含む（Oculus Touchのみ対応）
+ * Rayの動的な長さ調整と振動フィードバック機能を含む
  */
 
 /* global AFRAME, THREE */
@@ -40,8 +41,70 @@ const modeToggleState = {
 };
 
 /**
+ * A-Frameコンポーネント: dynamic-ray
+ * Rayの長さを動的に変更（UIに当たった場合、その距離まで）
+ */
+AFRAME.registerComponent('dynamic-ray', {
+  init: function() {
+    this.raycasterEl = this.el;
+    this.lineEl = this.el.querySelector('#rayLine');
+    this.defaultFar = 3;  // デフォルトの距離
+    this.currentDistance = this.defaultFar;
+    
+    // raycasterコンポーネントの取得を待つ
+    this.el.addEventListener('componentinitialized', (evt) => {
+      if (evt.detail.name === 'raycaster') {
+        this.raycaster = this.el.components.raycaster;
+        console.log('[DYNAMIC RAY] Raycaster initialized');
+      }
+    });
+    
+    // raycaster-intersectionイベントをリッスン
+    this.el.addEventListener('raycaster-intersection', (evt) => {
+      const intersections = evt.detail.intersections;
+      if (intersections && intersections.length > 0) {
+        // 最も近い交差点の距離を取得
+        const closestIntersection = intersections[0];
+        this.currentDistance = closestIntersection.distance;
+        this.updateRayLength(this.currentDistance);
+        // console.log('[DYNAMIC RAY] Hit UI at distance:', this.currentDistance.toFixed(3));
+      }
+    });
+    
+    // raycaster-intersection-clearedイベントをリッスン
+    this.el.addEventListener('raycaster-intersection-cleared', () => {
+      // UIがない場合はデフォルトの距離に戻す
+      this.currentDistance = this.defaultFar;
+      this.updateRayLength(this.defaultFar);
+      // console.log('[DYNAMIC RAY] No UI hit, using default distance');
+    });
+    
+    console.log('[DYNAMIC RAY] Initialized');
+  },
+  
+  updateRayLength: function(distance) {
+    if (!this.lineEl) return;
+    
+    // direction: 0 -1 -1 を正規化した方向ベクトル
+    const direction = new THREE.Vector3(0, -1, -1).normalize();
+    
+    // 距離に応じたエンドポイントを計算
+    const end = direction.multiplyScalar(distance);
+    
+    // lineのendプロパティを更新
+    this.lineEl.setAttribute('line', {
+      start: { x: 0, y: 0, z: 0 },
+      end: { x: end.x, y: end.y, z: end.z },
+      color: 'white',
+      opacity: 1.0
+    });
+  }
+});
+
+/**
  * A-Frameコンポーネント: controller-cursor
  * コントローラーのトリガーでレイキャスト上のオブジェクトをクリック
+ * 振動フィードバック機能を含む
  */
 AFRAME.registerComponent('controller-cursor', {
   init: function() {
@@ -81,10 +144,53 @@ AFRAME.registerComponent('controller-cursor', {
     if (this.hoveredEl) {
       console.log('[CONTROLLER CURSOR] Clicking on:', this.hoveredEl.id || this.hoveredEl.className);
       
+      // 振動フィードバックを実行
+      this.triggerHapticFeedback();
+      
       // clickイベントを発火
       this.hoveredEl.emit('click');
     } else {
       console.log('[CONTROLLER CURSOR] No element hovered');
+    }
+  },
+  
+  /**
+   * コントローラーに振動フィードバックを送る
+   */
+  triggerHapticFeedback: function() {
+    try {
+      // 方法1: Oculus Touch Controlsのpulseメソッドを使用
+      const oculusTouchControls = this.el.components['oculus-touch-controls'];
+      if (oculusTouchControls && oculusTouchControls.controller) {
+        // pulse(intensity, duration)
+        // intensity: 0.0-1.0, duration: ミリ秒
+        oculusTouchControls.controller.pulse(0.5, 100);
+        console.log('[HAPTIC] Vibration triggered via Oculus Touch Controls');
+        return;
+      }
+      
+      // 方法2: Gamepad APIを直接使用
+      const gamepads = navigator.getGamepads();
+      if (gamepads) {
+        for (let i = 0; i < gamepads.length; i++) {
+          const gamepad = gamepads[i];
+          if (gamepad && gamepad.hand === 'right' && gamepad.vibrationActuator) {
+            // playEffect(type, params)
+            gamepad.vibrationActuator.playEffect('dual-rumble', {
+              startDelay: 0,
+              duration: 100,
+              weakMagnitude: 0.5,
+              strongMagnitude: 0.5
+            });
+            console.log('[HAPTIC] Vibration triggered via Gamepad API');
+            return;
+          }
+        }
+      }
+      
+      console.warn('[HAPTIC] No vibration method available');
+    } catch (error) {
+      console.error('[HAPTIC] Error triggering vibration:', error);
     }
   }
 });
