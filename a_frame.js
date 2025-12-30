@@ -52,8 +52,22 @@ const modeToggleState = {
  */
 AFRAME.registerComponent('controller-cursor', {
   init: function() {
-    this.raycaster = this.el.components.raycaster;
+    this.hoveredEl = null;
     this.triggerPressed = false;
+    
+    // レイキャスターのイベントをリッスン
+    this.el.addEventListener('raycaster-intersection', (evt) => {
+      // 複数の交差がある場合、最も近いものを取得
+      if (evt.detail.els && evt.detail.els.length > 0) {
+        this.hoveredEl = evt.detail.els[0];
+        console.log('[CONTROLLER CURSOR] Hovering:', this.hoveredEl.id || this.hoveredEl.className);
+      }
+    });
+    
+    this.el.addEventListener('raycaster-intersection-cleared', (evt) => {
+      console.log('[CONTROLLER CURSOR] Hover cleared');
+      this.hoveredEl = null;
+    });
     
     // トリガーボタンのイベントをリッスン
     this.el.addEventListener('triggerdown', () => {
@@ -71,29 +85,13 @@ AFRAME.registerComponent('controller-cursor', {
   },
   
   onClick: function() {
-    if (!this.raycaster) return;
-    
-    // レイキャスターの交差情報を取得
-    const intersections = this.raycaster.intersections;
-    
-    if (intersections && intersections.length > 0) {
-      const intersection = intersections[0];
-      const targetEl = intersection.object.el;
+    if (this.hoveredEl) {
+      console.log('[CONTROLLER CURSOR] Clicking on:', this.hoveredEl.id || this.hoveredEl.className);
       
-      if (targetEl) {
-        console.log('[CONTROLLER CURSOR] Clicking on:', targetEl.id || targetEl.className);
-        
-        // clickイベントを発火
-        targetEl.emit('click');
-        
-        // マウスイベントも発火（互換性のため）
-        const clickEvent = new MouseEvent('click', {
-          bubbles: true,
-          cancelable: true,
-          view: window
-        });
-        targetEl.dispatchEvent(clickEvent);
-      }
+      // clickイベントを発火
+      this.hoveredEl.emit('click');
+    } else {
+      console.log('[CONTROLLER CURSOR] No element hovered');
     }
   }
 });
@@ -121,6 +119,7 @@ AFRAME.registerComponent('ui-button', {
       if (this.isHovered) {
         this.isHovered = false;
         this.el.setAttribute('color', this.originalColor);
+        console.log('[UI BUTTON] Hover cleared:', this.el.id);
       }
     });
     
@@ -187,7 +186,10 @@ AFRAME.registerComponent('ui-toggle', {
     });
     
     this.el.addEventListener('raycaster-intersected-cleared', () => {
-      this.isHovered = false;
+      if (this.isHovered) {
+        this.isHovered = false;
+        console.log('[UI TOGGLE] Hover cleared');
+      }
     });
     
     // クリックイベント
