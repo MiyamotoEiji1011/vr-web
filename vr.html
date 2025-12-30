@@ -250,15 +250,22 @@
       </a-entity>
 
       <!-- 6DoF コントローラー: Oculus Touch -->
+      <!-- 左コントローラー -->
       <a-entity id="leftOculus" 
                 oculus-touch-controls="hand: left; model: true" 
                 controller-listener="hand: left"
-                raycaster="objects: .ui-button, .ui-toggle; far: 10">
+                raycaster="objects: .ui-button, .ui-toggle; far: 10; lineColor: red; lineOpacity: 0.5"
+                cursor="rayOrigin: mouse; fuse: false"
+                controller-cursor>
       </a-entity>
+      
+      <!-- 右コントローラー -->
       <a-entity id="rightOculus" 
                 oculus-touch-controls="hand: right; model: true" 
                 controller-listener="hand: right"
-                raycaster="objects: .ui-button, .ui-toggle; far: 10">
+                raycaster="objects: .ui-button, .ui-toggle; far: 10; lineColor: red; lineOpacity: 0.5"
+                cursor="rayOrigin: mouse; fuse: false"
+                controller-cursor>
       </a-entity>
     </a-entity>
 
