@@ -16,14 +16,40 @@ window.uiState = {
   
   // 入力値
   passValue: '',
-  idValue: '*************',
-  secretValue: '*************',
+  idValue: '441577ac-312a-4ffb-aad5-e540d3876971',      // デフォルトAppId
+  secretValue: 'Bk9LR3lnRG483XKgUQAzCoP7tpLBhMs45muc9zDOoxE=',  // デフォルトSecret
   
   // 表示情報
-  userid: '*************',
-  resolution: '1080x720',
-  fps: '30'
+  userid: 'none',
+  resolution: 'none',
+  fps: 'none'
 };
+
+/**
+ * UIの初期化
+ * デフォルト値をUIに反映
+ */
+function initializeUI() {
+  // ID/SECRETのデフォルト値を表示
+  const idInputText = document.getElementById('idInputText');
+  const secretInputText = document.getElementById('secretInputText');
+  
+  if (idInputText) {
+    idInputText.setAttribute('value', window.uiState.idValue);
+  }
+  if (secretInputText) {
+    idInputText.setAttribute('value', window.uiState.secretValue);
+  }
+  
+  console.log('[UI] Initialized with default values');
+}
+
+// DOMロード後に初期化
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initializeUI);
+} else {
+  initializeUI();
+}
 
 /**
  * A-Frameコンポーネント: ui-input
@@ -187,17 +213,78 @@ AFRAME.registerComponent('ui-button', {
     
     // アクションに応じた処理
     if (action === 'connect') {
-      console.log('[UI] Connect button clicked');
-      window.uiState.connected = true;
-      // TODO: 実際の接続処理
+      this.handleConnect();
     } else if (action === 'disconnect') {
-      console.log('[UI] Disconnect button clicked');
-      window.uiState.connected = false;
-      // TODO: 実際の切断処理
+      this.handleDisconnect();
     } else if (action === 'roomUp') {
       this.changeRoom(1);
     } else if (action === 'roomDown') {
       this.changeRoom(-1);
+    }
+  },
+  
+  /**
+   * SkyWay接続処理
+   */
+  handleConnect: async function() {
+    console.log('[UI] Connect button clicked');
+    
+    // すでに接続中の場合は何もしない
+    if (window.uiState.connected) {
+      console.log('[UI] Already connected');
+      return;
+    }
+    
+    // 接続パラメータを取得
+    const roomNumber = window.uiState.roomNumber;
+    const appId = window.uiState.idValue;
+    const secret = window.uiState.secretValue;
+    
+    console.log('[UI] Connecting with params:', { roomNumber, appId });
+    
+    // SkyWayに接続
+    if (window.connectSkyWay) {
+      const result = await window.connectSkyWay(roomNumber, appId, secret);
+      
+      if (result.success) {
+        console.log('[UI] Connected successfully');
+        window.uiState.connected = true;
+        window.uiState.userid = result.userId;
+        window.uiState.resolution = result.resolution;
+        window.uiState.fps = result.fps;
+      } else {
+        console.error('[UI] Connection failed:', result.error);
+        alert('SkyWay接続に失敗しました: ' + result.error);
+      }
+    } else {
+      console.error('[UI] connectSkyWay function not available');
+      alert('SkyWay接続機能が利用できません');
+    }
+  },
+  
+  /**
+   * SkyWay切断処理
+   */
+  handleDisconnect: async function() {
+    console.log('[UI] Disconnect button clicked');
+    
+    // 接続していない場合は何もしない
+    if (!window.uiState.connected) {
+      console.log('[UI] Not connected');
+      return;
+    }
+    
+    // SkyWayから切断
+    if (window.disconnectSkyWay) {
+      await window.disconnectSkyWay();
+      console.log('[UI] Disconnected successfully');
+      
+      window.uiState.connected = false;
+      window.uiState.userid = 'none';
+      window.uiState.resolution = 'none';
+      window.uiState.fps = 'none';
+    } else {
+      console.error('[UI] disconnectSkyWay function not available');
     }
   },
   
@@ -274,6 +361,11 @@ AFRAME.registerComponent('ui-toggle', {
     
     // 状態を更新
     window.uiState.debugMode = this.isOn;
+    
+    // HUD表示を更新
+    if (window.appUpdateHudVisibility) {
+      window.appUpdateHudVisibility();
+    }
     
     console.log(`[UI TOGGLE] Debug mode: ${this.isOn ? 'ON' : 'OFF'}`);
   }

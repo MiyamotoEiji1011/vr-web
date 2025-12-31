@@ -1,373 +1,413 @@
 # VR Video Streaming with SkyWay
 
 WebXR対応のVRビデオストリーミングアプリケーション  
-Rayの動的長さ調整機能を実装
+UIとSkyWayシステムを完全統合
 
 ## ファイル構成
 
 ```
 ├── vr.html         # メインHTMLファイル
-├── skyway.js       # SkyWay関連の機能
+├── skyway.js       # SkyWay接続・切断機能
 ├── ui.js           # UI関連のコンポーネント
 ├── a_frame.js      # コントローラー関連のコンポーネント
-└── app.js          # メインアプリケーションロジック
+└── app.js          # アプリケーション統合・DebugMode制御
 ```
 
-## 新機能
+## 実装した機能
 
-### ✅ Rayの動的な長さ調整
+### ✅ 左パネル UI
 
-**機能:**
-- RayがUIに当たった場合、その距離までRayを描画
-- UIがない場合はデフォルトの距離（far: 3）で描画
-- Rayが貫通しない
+#### Pass入力フィールド
+- 現状何も紐づけていない（将来の拡張用）
 
-**実装:**
-```javascript
-// dynamic-rayコンポーネント
-AFRAME.registerComponent('dynamic-ray', {
-  init: function() {
-    // raycaster-intersectionイベントをリッスン
-    this.el.addEventListener('raycaster-intersection', (evt) => {
-      const intersections = evt.detail.intersections;
-      if (intersections && intersections.length > 0) {
-        const closestIntersection = intersections[0];
-        this.currentDistance = closestIntersection.distance;
-        this.updateRayLength(this.currentDistance);
-      }
-    });
-  }
-});
+#### Room番号選択
+- **機能**: SkyWayの接続ルーム名を選択
+- **範囲**: 1-9
+- **ルーム名**: Room番号が1なら"room1"、2なら"room2"...
+- **UI**: ↑↓ボタンで番号を切り替え
+
+**例:**
+```
+Room番号: 1 → 接続ルーム名: "room1"
+Room番号: 2 → 接続ルーム名: "room2"
+Room番号: 9 → 接続ルーム名: "room9"
 ```
 
-**動作:**
-```
-Rayの長さ調整:
+#### DebugMode トグル
+- **True**: 操作モードでHUDテキスト（HUD、コントローラー情報、モード表示）を表示
+- **False**: 操作モードでHUDテキストを非表示
 
-UIなし:
-Controller ──────────────────────> (far: 3)
+#### Connect / Disconnect ボタン
+- **Connect**: SkyWayルームに接続
+  - UIに入力されたID、SECRETを使用
+  - 選択されたRoom番号のルームに接続
+  - 接続成功時、USERID/解像度/FPSを更新
+- **Disconnect**: SkyWayルームから切断
+  - すべての情報を"none"に戻す
 
-UIあり:
-Controller ─────────> [UI]  ✓ UIまでの距離で止まる
-                      ↑
-                  distance: 1.5
-```
+### ✅ 正面パネル UI
 
-## UI配置
+#### ID / SECRET 入力フィールド
+- **デフォルト値**: SkyWayの認証情報を設定
+  - ID: `441577ac-312a-4ffb-aad5-e540d3876971`
+  - SECRET: `Bk9LR3lnRG483XKgUQAzCoP7tpLBhMs45muc9zDOoxE=`
+- **変更可能**: キーボードで編集して別のSkyWayプロジェクトに接続可能
+- **使用タイミング**: Connectボタンクリック時にUIの値を使用
 
-### 3パネルレイアウト
+#### USERID 表示
+- **未接続時**: "none"
+- **接続時**: SkyWayから取得したユーザーIDを表示
+- **切断時**: "none"に戻す
 
-```
-        VR空間の配置（上から見た図）
-        
-           ┌────────┐
-           │ 正面   │
-           │ パネル │
-           └────────┘
-              0,0,0
-               ↑
-               
-  ┌────┐     👤      ┌────┐
-  │左  │    カメラ    │右  │
-  │パネル│            │パネル│
-  └────┘            └────┘
--2,0,1              2,0,1
-rotation:           rotation:
-0,45,0              0,-45,0
-
-
-         キーボード
-         （下部中央）
-          0,-1.3,0.5
-```
-
-## パネル詳細
-
-### 左パネル
-
-**色:** グレー（#7F8C8D）透明度70%  
-**サイズ:** 1.5m × 2.0m  
-**回転:** 45度（右向き）
-
-**内容:**
-```
-Pass [____________]
-Room [1]  [↑][↓]
-DebugMode (     )
-─────────────────
-[   Connect    ]
-[  Disconnect  ]
-```
-
-**機能:**
-- **Pass**: InputField（キーボードで入力）
-- **Room**: 番号表示 + ↑↓ボタン（1-9を切り替え）
-- **DebugMode**: トグルスイッチ（ON/OFF）
-- **Connect**: 接続ボタン
-- **Disconnect**: 切断ボタン
-
-### 正面パネル（中央）
-
-**色:** グレー（#7F8C8D）透明度70%  
-**サイズ:** 2.0m × 2.0m  
-**回転:** なし
-
-**内容:**
-```
-ID     [*************]
-SECRET [*************]
-─────────────────────
-USERID    *************
-Resolution: 1080x720
-FPS:        30
-```
-
-**機能:**
-- **ID**: InputField（キーボードで入力）
-- **SECRET**: InputField（キーボードで入力）
-- **USERID**: テキスト表示（開発用プレースホルダー）
-- **Resolution**: テキスト表示（開発用プレースホルダー）
-- **FPS**: テキスト表示（開発用プレースホルダー）
-
-### 右パネル
-
-**色:** グレー（#7F8C8D）透明度70%  
-**サイズ:** 1.5m × 2.0m  
-**回転:** -45度（左向き）
-
-**内容:**
-- 現在は空のパネル
-
-### キーボード（下部中央）
-
-**色:** ダークグレー（#1C1C1C）透明度95%  
-**サイズ:** 2.0m × 1.3m  
-**位置:** 下部中央
-
-**内容:**
-- 数字キー（0-9）
-- アルファベット（a-z）
-- 記号（@ . - _）
-- 機能キー（Space, Backspace, Enter）
+#### 解像度・FPS 表示
+- **未接続時**: "none"
+- **接続時**: カメラストリームの設定値を表示
+  - 解像度: 例 "1920x1080"
+  - FPS: 例 "30"
+- **切断時**: "none"に戻す
 
 ## 技術詳細
 
-### Rayの長さ調整の仕組み
+### SkyWay接続フロー
 
-#### vr.html
-```html
-<a-entity id="rightOculus" 
-          raycaster="objects: .ui-button, .ui-toggle, .ui-input; 
-                     origin: 0 0 0; 
-                     direction: 0 -1 -1; 
-                     far: 3; 
-                     showLine: false"
-          controller-cursor
-          dynamic-ray>
-  <!-- 手動で制御するRayライン -->
-  <a-entity id="rayLine"
-            line="start: 0 0 0; end: 0 -3 -3; color: white; opacity: 1.0">
-  </a-entity>
-</a-entity>
+```
+1. Connectボタンをクリック
+   ↓
+2. UIから情報を取得
+   - roomNumber: window.uiState.roomNumber (1-9)
+   - appId: window.uiState.idValue
+   - secret: window.uiState.secretValue
+   ↓
+3. SkyWayトークン生成
+   - createToken(appId, secret)
+   ↓
+4. SkyWayコンテキスト作成
+   - SkyWayContext.Create(token)
+   ↓
+5. ルーム検索/作成
+   - SkyWayRoom.FindOrCreate(context, { name: `room${roomNumber}` })
+   ↓
+6. ルームに参加
+   - room.join()
+   - me.id でユーザーIDを取得
+   ↓
+7. カメラストリーム作成
+   - SkyWayStreamFactory.createCameraVideoStream()
+   - track.getSettings()で解像度/FPSを取得
+   ↓
+8. publish
+   - me.publish(localVideoStream)
+   ↓
+9. UIを更新
+   - userid, resolution, fpsを表示
+   - VRスクリーンに映像を表示
 ```
 
-**重要なポイント:**
-- `showLine: false` - A-Frameのデフォルトのline表示を無効化
-- `dynamic-ray` - 手動でlineの長さを制御するコンポーネント
-- `#rayLine` - 手動で制御するlineエンティティ
+### SkyWay切断フロー
 
-#### a_frame.js
-```javascript
-updateRayLength: function(distance) {
-  // direction: 0 -1 -1 を正規化した方向ベクトル
-  const direction = new THREE.Vector3(0, -1, -1).normalize();
-  
-  // 距離に応じたエンドポイントを計算
-  const end = direction.multiplyScalar(distance);
-  
-  // lineのendプロパティを更新
-  this.lineEl.setAttribute('line', {
-    start: { x: 0, y: 0, z: 0 },
-    end: { x: end.x, y: end.y, z: end.z },
-    color: 'white',
-    opacity: 1.0
-  });
-}
+```
+1. Disconnectボタンをクリック
+   ↓
+2. ルームから退出
+   - me.leave()
+   ↓
+3. ルームを破棄
+   - room.dispose()
+   ↓
+4. VRスクリーンから映像を削除
+   - remoteVideo.pause()
+   - screen.material.color = '#111'
+   ↓
+5. 状態をリセット
+   - connected = false
+   - userId = 'none'
+   - resolution = 'none'
+   - fps = 'none'
+   ↓
+6. UIを更新
+   - すべての表示を"none"に戻す
 ```
 
-**計算の流れ:**
-1. raycasterの方向ベクトル `(0, -1, -1)` を正規化
-2. 交差点の距離を取得
-3. 方向ベクトル × 距離 = エンドポイント
-4. lineのendプロパティを更新
+### DebugMode制御フロー
+
+```
+1. DebugModeトグルをクリック
+   ↓
+2. isOnを反転
+   ↓
+3. window.uiState.debugMode を更新
+   ↓
+4. window.appUpdateHudVisibility()を呼び出し
+   ↓
+5. 操作モード&&DebugMode==Trueの場合
+   - hudText.visible = true
+   - controllerInfo.visible = true
+   - modeText.visible = true
+   ↓
+6. 操作モード&&DebugMode==Falseの場合
+   - hudText.visible = false
+   - controllerInfo.visible = false
+   - modeText.visible = false
+```
 
 ## 使い方
 
-### 基本操作
+### 基本的な接続フロー
 
 1. **VRモードに入る**
-   - VRヘッドセットを装着
-   - 正面に3つのパネルが表示される
+   - 設定モードのパネルが表示される
 
-2. **モード切り替え**
-   - 左コントローラーの**Xボタン**を押す
-   - Settings ↔ Control が切り替わる
+2. **Room番号を選択**
+   - ↑↓ボタンで1-9の番号を選択
 
-3. **UIクリック**
-   - 右コントローラーを向ける
-   - 🔴 赤い線（Ray）が前方に表示される
-   - トリガーを引く
+3. **（オプション）ID/SECRETを変更**
+   - デフォルトのままでOK
+   - 別のSkyWayプロジェクトに接続する場合は変更
 
-### Rayの動作確認
+4. **Connectボタンをクリック**
+   - SkyWayルームに接続
+   - USERID、解像度、FPSが表示される
 
-1. **VRモードに入る**
-   - 右コントローラーから白い線（Ray）が出る
+5. **操作モードに切り替え**
+   - 左コントローラーのXボタンを押す
+   - VRスクリーンに映像が表示される
 
-2. **UIを向ける**
-   - UIに向けるとRayがUIまでの距離で止まる
-   - UIがない方向を向くとデフォルトの距離（far: 3）まで伸びる
+6. **（オプション）DebugModeを切り替え**
+   - 設定モードに戻る（Xボタン）
+   - DebugModeトグルをクリック
+   - 操作モードに切り替えるとHUDの表示/非表示が変わる
 
-3. **観察ポイント**
-   - Rayの長さがUIまでの距離で動的に変わることを確認
-   - Rayが貫通しないことを確認
+7. **切断する**
+   - 設定モードに戻る（Xボタン）
+   - Disconnectボタンをクリック
+
+### Room番号の使い方
+
+**シナリオ1: 同じルームで通信**
+```
+デバイスA: Room番号 1 → "room1"に接続
+デバイスB: Room番号 1 → "room1"に接続
+→ 同じルームで映像を共有
+```
+
+**シナリオ2: 別々のルームで通信**
+```
+デバイスA: Room番号 1 → "room1"に接続
+デバイスB: Room番号 2 → "room2"に接続
+→ 別々のルームで独立した通信
+```
+
+### DebugModeの使い方
+
+**DebugMode ON:**
+```
+操作モードで:
+- HUD（解像度、FPS、回転情報）が表示される
+- コントローラー情報が表示される
+- モード表示が表示される
+```
+
+**DebugMode OFF:**
+```
+操作モードで:
+- すべてのテキストが非表示
+- 映像のみが表示される
+- 没入感が向上
+```
 
 ## グローバル状態
 
+### window.uiState
+
 ```javascript
 window.uiState = {
-  // 左パネル
-  roomNumber: 1,
-  debugMode: false,
-  connected: false,
-  passValue: '',
+  roomNumber: 1,           // 接続するルーム番号（1-9）
+  debugMode: false,        // DebugMode状態
+  connected: false,        // 接続状態
   
-  // 正面パネル
-  idValue: '*************',
-  secretValue: '*************',
+  idValue: '441577ac...',  // SkyWay AppId
+  secretValue: 'Bk9LR...',  // SkyWay Secret
   
-  // 表示情報
-  userid: '*************',
-  resolution: '1080x720',
-  fps: '30',
+  userid: 'none',          // 接続時のユーザーID
+  resolution: 'none',      // 映像の解像度
+  fps: 'none'              // 映像のFPS
+};
+```
+
+### window.skywayState
+
+```javascript
+window.skywayState = {
+  context: null,           // SkyWayContext
+  room: null,              // SkyWayRoom
+  me: null,                // Member
+  localVideoStream: null,  // ローカル映像ストリーム
+  connected: false,        // 接続状態
   
-  // キーボード
-  keyboardVisible: false,
-  currentInputField: null
+  defaultAppId: '441577ac...',
+  defaultSecret: 'Bk9LR...',
+  currentAppId: '441577ac...',
+  currentSecret: 'Bk9LR...',
+  
+  userId: 'none',
+  resolution: 'none',
+  fps: 'none'
 };
 ```
 
 ## グローバル関数
 
-### updateDisplayInfo
+### connectSkyWay(roomNumber, appId, secret)
 
-表示情報を更新する関数：
+SkyWayルームに接続
 
 ```javascript
-// 全ての情報を更新
-window.updateDisplayInfo('user123', '1920x1080', '60');
+const result = await window.connectSkyWay(1, 'app-id', 'secret-key');
 
-// 個別に更新
-window.updateDisplayInfo('user123', undefined, undefined);  // USERIDのみ
-window.updateDisplayInfo(undefined, '3840x2160', undefined);  // Resolutionのみ
-window.updateDisplayInfo(undefined, undefined, '60');  // FPSのみ
+if (result.success) {
+  console.log('接続成功:', result.userId);
+} else {
+  console.error('接続失敗:', result.error);
+}
+```
+
+### disconnectSkyWay()
+
+SkyWayルームから切断
+
+```javascript
+await window.disconnectSkyWay();
+console.log('切断完了');
+```
+
+### updateDisplayInfo(userid, resolution, fps)
+
+表示情報を更新
+
+```javascript
+window.updateDisplayInfo('user123', '1920x1080', '30');
+```
+
+### appUpdateHudVisibility()
+
+DebugModeに応じてHUD表示を更新
+
+```javascript
+window.appUpdateHudVisibility();
 ```
 
 ## デバッグ方法
 
-### Rayの長さ確認
+### 接続状態の確認
 
 ```javascript
-// dynamic-rayコンポーネントの状態確認
-const rightController = document.getElementById('rightOculus');
-const dynamicRay = rightController.components['dynamic-ray'];
+// UI状態
+console.log('Connected:', window.uiState.connected);
+console.log('Room:', window.uiState.roomNumber);
+console.log('UserID:', window.uiState.userid);
 
-console.log('Current distance:', dynamicRay.currentDistance);
-console.log('Default far:', dynamicRay.defaultFar);
+// SkyWay状態
+console.log('SkyWay Connected:', window.skywayState.connected);
+console.log('SkyWay UserID:', window.skywayState.userId);
+console.log('SkyWay Room:', window.skywayState.room);
 ```
 
-### パネル位置確認
+### 手動接続テスト
 
 ```javascript
-// 各パネルの位置を確認
-const leftPanel = document.getElementById('leftPanel');
-console.log(leftPanel.getAttribute('position'));  // {x: -2, y: 0, z: 1}
+// 手動でSkyWayに接続
+const result = await window.connectSkyWay(
+  1,  // room1
+  '441577ac-312a-4ffb-aad5-e540d3876971',
+  'Bk9LR3lnRG483XKgUQAzCoP7tpLBhMs45muc9zDOoxE='
+);
 
-const centerPanel = document.getElementById('centerPanel');
-console.log(centerPanel.getAttribute('position'));  // {x: 0, y: 0, z: 0}
-
-const rightPanel = document.getElementById('rightPanel');
-console.log(rightPanel.getAttribute('position'));  // {x: 2, y: 0, z: 1}
+console.log(result);
 ```
 
-### 状態確認
+### DebugModeテスト
 
 ```javascript
-// 全体の状態
-console.log(window.uiState);
+// DebugModeを切り替え
+window.uiState.debugMode = true;
+window.appUpdateHudVisibility();
 
-// 個別の値
-console.log(window.uiState.roomNumber);   // 1
-console.log(window.uiState.passValue);    // ''
-console.log(window.uiState.idValue);      // '*************'
+// 確認
+const hudText = document.getElementById('hudText');
+console.log('HUD visible:', hudText.getAttribute('visible'));
 ```
 
 ## コンソールログ
 
-### 正常動作時
+### 接続時
 
 ```
-[DYNAMIC RAY] Initialized
-[DYNAMIC RAY] Raycaster initialized
+[SKYWAY] Connecting...
+[SKYWAY] Room: 1
+[SKYWAY] AppId: 441577ac-312a-4ffb-aad5-e540d3876971
+[SKYWAY] Context created
+[SKYWAY] Room found/created: room1
+[SKYWAY] Joined room, my ID: abc123xyz
+[SKYWAY] Camera stream created
+[SKYWAY] Video settings: {width: 1920, height: 1080, frameRate: 30}
+[SKYWAY] Video stream published
+[SKYWAY] Video attached to screen
+[SKYWAY] Subscription setup complete
+[UI] Connected successfully
+```
 
-[CONTROLLER CURSOR] Hovering: passInputField
-[CONTROLLER CURSOR] Clicking on: passInputField
+### 切断時
 
-[UI INPUT] pass clicked
-[KEYBOARD] Keyboard shown for field: pass
+```
+[SKYWAY] Disconnecting...
+[SKYWAY] Left room
+[SKYWAY] Room disposed
+[SKYWAY] Video removed from screen
+[SKYWAY] Disconnected
+```
 
-[UI KEY] a clicked
-[KEYBOARD] Current input: pass a
+### DebugMode切り替え時
+
+```
+[UI TOGGLE] Debug mode: ON
+[DEBUG MODE] HUD visible
+
+[UI TOGGLE] Debug mode: OFF
+[DEBUG MODE] HUD hidden
 ```
 
 ## トラブルシューティング
 
-### Rayの長さが変わらない
+### 接続できない
 
-1. ✅ `dynamic-ray`コンポーネントが追加されているか確認
-2. ✅ `showLine: false`になっているか確認
-3. ✅ `#rayLine`エンティティが存在するか確認
-4. ✅ コンソールで`[DYNAMIC RAY] Initialized`ログを確認
+1. ✅ ID/SECRETが正しいか確認
+2. ✅ Room番号が1-9の範囲内か確認
+3. ✅ コンソールでエラーメッセージを確認
+4. ✅ SkyWayダッシュボードでプロジェクトが有効か確認
 
-### Rayが表示されない
+### 映像が表示されない
 
-1. ✅ `#rayLine`の`line`属性が正しく設定されているか確認
-2. ✅ `color: white`と`opacity: 1.0`が設定されているか確認
-3. ✅ raycasterの`direction`が正しいか確認（0 -1 -1）
+1. ✅ カメラの権限が許可されているか確認
+2. ✅ 操作モードに切り替えているか確認
+3. ✅ コンソールで`[SKYWAY] Video attached to screen`ログを確認
 
-### パネルが見えない
+### DebugModeが動作しない
 
-1. ✅ 設定モードになっているか確認（Xボタンで切り替え）
-2. ✅ カメラの位置を確認
-3. ✅ コンソールで`[MODE MANAGER] Settings UI displayed`ログを確認
+1. ✅ 操作モードに切り替えているか確認（設定モードでは効果なし）
+2. ✅ トグルがONになっているか確認
+3. ✅ コンソールで`[DEBUG MODE]`ログを確認
 
-### キーボードが表示されない
+### USERIDが"none"のまま
 
-1. ✅ InputFieldをクリックしたか確認
-2. ✅ コンソールで`[KEYBOARD] Keyboard shown`ログを確認
-3. ✅ `virtualKeyboard`のvisibleを確認
-
-### Room番号が変わらない
-
-1. ✅ ↑↓ボタンに`ui-button`コンポーネントが設定されているか確認
-2. ✅ `action`属性が正しく設定されているか確認（`roomUp`、`roomDown`）
-3. ✅ コンソールで`[UI] Room number changed to`ログを確認
+1. ✅ 接続が成功しているか確認
+2. ✅ コンソールで`[SKYWAY] Joined room, my ID:`ログを確認
+3. ✅ `window.uiState.userid`の値を確認
 
 ## 参考情報
 
+- [SkyWay公式ドキュメント](https://skyway.ntt.com/ja/docs/)
+- [SkyWay SDK (Room API)](https://github.com/skyway/js-sdk)
 - [A-Frame公式ドキュメント](https://aframe.io/docs/)
-- [A-Frame Raycaster](https://aframe.io/docs/1.5.0/components/raycaster.html)
-- [A-Frame Line](https://aframe.io/docs/1.5.0/components/line.html)
-- [A-Frame Components](https://aframe.io/docs/1.5.0/introduction/writing-a-component.html)
 
 ## ライセンス
 

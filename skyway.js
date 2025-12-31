@@ -1,166 +1,356 @@
 /**
  * skyway.js
- * SkyWay関連の機能を管理
+ * SkyWay接続・切断機能
  */
 
-/* global skyway_room, THREE */
+/* global skyway_room */
 
-// SkyWay設定
-const SKYWAY_CONFIG = {
-  ROOM_NAME: "room",
-  APP_ID: "441577ac-312a-4ffb-aad5-e540d3876971",
-  SECRET: "Bk9LR3lnRG483XKgUQAzCoP7tpLBhMs45muc9zDOoxE="
+// SkyWay SDKの取得
+const {
+  nowInSec,
+  SkyWayAuthToken,
+  SkyWayContext,
+  SkyWayRoom,
+  SkyWayStreamFactory,
+} = skyway_room;
+
+// SkyWay接続状態
+window.skywayState = {
+  context: null,
+  room: null,
+  me: null,
+  localVideoStream: null,
+  connected: false,
+  
+  // デフォルトの認証情報
+  defaultAppId: '441577ac-312a-4ffb-aad5-e540d3876971',
+  defaultSecret: 'Bk9LR3lnRG483XKgUQAzCoP7tpLBhMs45muc9zDOoxE=',
+  
+  // 実際に使用する認証情報（UIから更新される）
+  currentAppId: '441577ac-312a-4ffb-aad5-e540d3876971',
+  currentSecret: 'Bk9LR3lnRG483XKgUQAzCoP7tpLBhMs45muc9zDOoxE=',
+  
+  // 接続情報
+  userId: 'none',
+  resolution: 'none',
+  fps: 'none'
 };
 
-// SkyWay APIのインポート
-const { nowInSec, SkyWayAuthToken, SkyWayContext, SkyWayRoom } = skyway_room;
+/**
+ * UUID (jti) helper
+ */
+function createJti() {
+  if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
 
 /**
- * SkyWayマネージャークラス
+ * SkyWayトークンを生成
  */
-class SkyWayManager {
-  constructor() {
-    this.context = null;
-    this.room = null;
-    this.me = null;
-  }
-
-  /**
-   * UUID (jti) の生成
-   */
-  createJti() {
-    if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
-    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-      const r = (Math.random() * 16) | 0;
-      const v = c === "x" ? r : (r & 0x3) | 0x8;
-      return v.toString(16);
-    });
-  }
-
-  /**
-   * SkyWay認証トークンの生成
-   */
-  createToken() {
-    return new SkyWayAuthToken({
-      jti: this.createJti(),
-      iat: nowInSec(),
-      exp: nowInSec() + 60 * 60,
-      version: 3,
-      scope: {
-        appId: SKYWAY_CONFIG.APP_ID,
-        rooms: [
-          {
-            name: SKYWAY_CONFIG.ROOM_NAME,
-            methods: ["create", "close", "updateMetadata"],
-            member: { name: "*", methods: ["subscribe"] },
+function createToken(appId, secret) {
+  const token = new SkyWayAuthToken({
+    jti: createJti(),
+    iat: nowInSec(),
+    exp: nowInSec() + 60 * 60 * 24,
+    version: 3,
+    scope: {
+      appId: appId,
+      rooms: [
+        {
+          name: "*",
+          methods: ["create", "close", "updateMetadata"],
+          member: {
+            name: "*",
+            methods: ["publish", "subscribe", "updateMetadata"],
           },
-        ],
-      },
-    }).encode(SKYWAY_CONFIG.SECRET);
-  }
+        },
+      ],
+    },
+  }).encode(secret);
+  
+  return token;
+}
 
-  /**
-   * SkyWay接続の初期化
-   */
-  async initialize() {
-    const token = this.createToken();
-    this.context = await SkyWayContext.Create(token);
-    return this.context;
-  }
-
-  /**
-   * Roomへの接続
-   */
-  async joinRoom(roomName = SKYWAY_CONFIG.ROOM_NAME) {
-    if (!this.context) {
-      throw new Error("SkyWay context is not initialized. Call initialize() first.");
-    }
-
-    this.room = await SkyWayRoom.FindOrCreate(this.context, { name: roomName });
-    this.me = await this.room.join();
-    return { room: this.room, me: this.me };
-  }
-
-  /**
-   * Publicationのサブスクライブ
-   */
-  async subscribe(publicationId) {
-    if (!this.me) {
-      throw new Error("Not joined to a room yet.");
-    }
-    return await this.me.subscribe(publicationId);
-  }
-
-  /**
-   * ビデオストリームの購読と処理
-   */
-  async subscribeVideo(publication, videoElement, onReady) {
-    if (publication.contentType !== "video") return;
-    if (videoElement.srcObject) return; // 既に1本接続済み
-
-    const { stream } = await this.subscribe(publication.id);
-    stream.attach(videoElement);
-
-    if (onReady) {
-      const handleReady = () => {
-        onReady();
-        videoElement.removeEventListener("loadeddata", handleReady);
-      };
-      videoElement.addEventListener("loadeddata", handleReady);
-    }
-  }
-
-  /**
-   * Room内の全Publicationを処理
-   */
-  handlePublications(callback) {
-    if (!this.room) {
-      throw new Error("Not joined to a room yet.");
-    }
-
-    this.room.publications.forEach((p) => callback(p).catch(console.error));
-    this.room.onStreamPublished.add((e) => {
-      callback(e.publication).catch(console.error);
+/**
+ * SkyWayに接続
+ */
+window.connectSkyWay = async function(roomNumber, appId, secret) {
+  try {
+    console.log('[SKYWAY] Connecting...');
+    console.log('[SKYWAY] Room:', roomNumber);
+    console.log('[SKYWAY] AppId:', appId);
+    
+    // UIの認証情報を保存
+    window.skywayState.currentAppId = appId;
+    window.skywayState.currentSecret = secret;
+    
+    // トークン生成
+    const token = createToken(appId, secret);
+    
+    // コンテキスト作成
+    window.skywayState.context = await SkyWayContext.Create(token);
+    console.log('[SKYWAY] Context created');
+    
+    // ルーム名を生成（例: room1, room2, ...）
+    const roomName = `room${roomNumber}`;
+    
+    // ルームを検索または作成
+    window.skywayState.room = await SkyWayRoom.FindOrCreate(window.skywayState.context, {
+      name: roomName,
     });
-  }
-
-  /**
-   * 接続のクリーンアップ
-   */
-  async cleanup() {
+    console.log('[SKYWAY] Room found/created:', roomName);
+    
+    // ルームに参加
+    window.skywayState.me = await window.skywayState.room.join();
+    console.log('[SKYWAY] Joined room, my ID:', window.skywayState.me.id);
+    
+    // 接続状態を更新
+    window.skywayState.connected = true;
+    window.skywayState.userId = window.skywayState.me.id;
+    
+    // カメラストリームを作成してpublish
     try {
-      await this.me?.leave();
-      await this.room?.dispose();
-    } finally {
-      this.context = null;
-      this.room = null;
-      this.me = null;
+      window.skywayState.localVideoStream = await SkyWayStreamFactory.createCameraVideoStream();
+      console.log('[SKYWAY] Camera stream created');
+      
+      // 映像情報を取得
+      const track = window.skywayState.localVideoStream.track;
+      if (track && track.getSettings) {
+        const settings = track.getSettings();
+        window.skywayState.resolution = `${settings.width}x${settings.height}`;
+        window.skywayState.fps = settings.frameRate ? settings.frameRate.toString() : '30';
+        console.log('[SKYWAY] Video settings:', settings);
+      }
+      
+      // publish
+      await window.skywayState.me.publish(window.skywayState.localVideoStream, { type: "p2p" });
+      console.log('[SKYWAY] Video stream published');
+      
+      // VRのスクリーンに映像を表示
+      attachVideoToScreen(window.skywayState.localVideoStream);
+      
+    } catch (videoError) {
+      console.error('[SKYWAY] Camera stream failed:', videoError);
+      // カメラが失敗しても接続は継続
+      window.skywayState.resolution = 'none';
+      window.skywayState.fps = 'none';
     }
+    
+    // リモートストリームの購読設定
+    setupSubscription();
+    
+    // UIを更新
+    updateUIAfterConnect();
+    
+    return {
+      success: true,
+      userId: window.skywayState.userId,
+      resolution: window.skywayState.resolution,
+      fps: window.skywayState.fps
+    };
+    
+  } catch (error) {
+    console.error('[SKYWAY] Connection failed:', error);
+    
+    // エラー時はクリーンアップ
+    await disconnectSkyWay();
+    
+    return {
+      success: false,
+      error: error.message || 'Unknown error'
+    };
+  }
+};
+
+/**
+ * SkyWayから切断
+ */
+window.disconnectSkyWay = async function() {
+  try {
+    console.log('[SKYWAY] Disconnecting...');
+    
+    // ルームから退出
+    if (window.skywayState.me) {
+      await window.skywayState.me.leave();
+      console.log('[SKYWAY] Left room');
+    }
+    
+    // ルームを破棄
+    if (window.skywayState.room) {
+      await window.skywayState.room.dispose();
+      console.log('[SKYWAY] Room disposed');
+    }
+    
+    // スクリーンから映像を削除
+    removeVideoFromScreen();
+    
+  } catch (error) {
+    console.error('[SKYWAY] Disconnect error:', error);
+  } finally {
+    // 状態をリセット
+    window.skywayState.context = null;
+    window.skywayState.room = null;
+    window.skywayState.me = null;
+    window.skywayState.localVideoStream = null;
+    window.skywayState.connected = false;
+    window.skywayState.userId = 'none';
+    window.skywayState.resolution = 'none';
+    window.skywayState.fps = 'none';
+    
+    console.log('[SKYWAY] Disconnected');
+    
+    // UIを更新
+    updateUIAfterDisconnect();
+  }
+};
+
+/**
+ * VRのスクリーンに映像を表示
+ */
+function attachVideoToScreen(videoStream) {
+  const screen = document.getElementById('screen');
+  const remoteVideo = document.getElementById('remoteVideo');
+  
+  if (!screen || !remoteVideo || !videoStream) return;
+  
+  try {
+    // ビデオ要素に接続
+    videoStream.attach(remoteVideo);
+    
+    // スクリーンにビデオテクスチャを設定
+    screen.setAttribute('material', 'src', '#remoteVideo');
+    
+    console.log('[SKYWAY] Video attached to screen');
+  } catch (error) {
+    console.error('[SKYWAY] Failed to attach video:', error);
   }
 }
 
 /**
- * ビデオテクスチャをA-Frame planeにアタッチ
+ * VRのスクリーンから映像を削除
  */
-function attachVideoTextureToPlane(videoEl, planeEl) {
-  const mesh = planeEl.getObject3D("mesh");
-  if (!mesh) {
-    planeEl.addEventListener(
-      "object3dset",
-      () => attachVideoTextureToPlane(videoEl, planeEl),
-      { once: true }
-    );
-    return;
+function removeVideoFromScreen() {
+  const screen = document.getElementById('screen');
+  const remoteVideo = document.getElementById('remoteVideo');
+  
+  if (remoteVideo) {
+    remoteVideo.pause();
+    remoteVideo.removeAttribute('src');
+    remoteVideo.load();
   }
+  
+  if (screen) {
+    screen.setAttribute('material', 'color', '#111');
+  }
+  
+  console.log('[SKYWAY] Video removed from screen');
+}
 
-  const texture = new THREE.VideoTexture(videoEl);
-  texture.needsUpdate = true;
+/**
+ * リモートストリームの購読設定
+ */
+function setupSubscription() {
+  if (!window.skywayState.room || !window.skywayState.me) return;
+  
+  const room = window.skywayState.room;
+  const me = window.skywayState.me;
+  
+  // 既存のpublicationを購読
+  room.publications.forEach((publication) => {
+    if (publication.publisher.id !== me.id) {
+      subscribeToPublication(publication);
+    }
+  });
+  
+  // 新しいpublicationを自動購読
+  room.onStreamPublished.add((e) => {
+    if (e.publication.publisher.id !== me.id) {
+      subscribeToPublication(e.publication);
+    }
+  });
+  
+  // unpublishイベント
+  room.onStreamUnpublished.add((e) => {
+    console.log('[SKYWAY] Stream unpublished:', e.publication.id);
+  });
+  
+  console.log('[SKYWAY] Subscription setup complete');
+}
 
-  mesh.material.map = texture;
-  mesh.material.color.set(0xffffff);
-  mesh.material.needsUpdate = true;
+/**
+ * publicationを購読
+ */
+async function subscribeToPublication(publication) {
+  try {
+    console.log('[SKYWAY] Subscribing to:', publication.id, publication.contentType);
+    
+    const { stream } = await window.skywayState.me.subscribe(publication.id);
+    
+    // ビデオストリームの場合、スクリーンに表示
+    if (stream.track.kind === 'video') {
+      attachVideoToScreen(stream);
+      
+      // 映像情報を更新
+      const track = stream.track;
+      if (track && track.getSettings) {
+        const settings = track.getSettings();
+        window.skywayState.resolution = `${settings.width}x${settings.height}`;
+        window.skywayState.fps = settings.frameRate ? settings.frameRate.toString() : '30';
+        
+        // UIを更新
+        if (window.updateDisplayInfo) {
+          window.updateDisplayInfo(
+            window.skywayState.userId,
+            window.skywayState.resolution,
+            window.skywayState.fps
+          );
+        }
+      }
+    }
+    
+    console.log('[SKYWAY] Subscribed successfully');
+  } catch (error) {
+    console.error('[SKYWAY] Subscribe failed:', error);
+  }
+}
+
+/**
+ * 接続後のUI更新
+ */
+function updateUIAfterConnect() {
+  if (window.updateDisplayInfo) {
+    window.updateDisplayInfo(
+      window.skywayState.userId,
+      window.skywayState.resolution,
+      window.skywayState.fps
+    );
+  }
+  
+  if (window.uiState) {
+    window.uiState.connected = true;
+  }
+}
+
+/**
+ * 切断後のUI更新
+ */
+function updateUIAfterDisconnect() {
+  if (window.updateDisplayInfo) {
+    window.updateDisplayInfo('none', 'none', 'none');
+  }
+  
+  if (window.uiState) {
+    window.uiState.connected = false;
+  }
 }
 
 // グローバルに公開
-window.SkyWayManager = SkyWayManager;
-window.attachVideoTextureToPlane = attachVideoTextureToPlane;
+window.skywayState = window.skywayState;
+window.connectSkyWay = window.connectSkyWay;
+window.disconnectSkyWay = window.disconnectSkyWay;
+
+console.log('[SKYWAY] Module loaded');

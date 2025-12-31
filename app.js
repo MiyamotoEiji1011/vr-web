@@ -1,19 +1,8 @@
 /**
  * app.js
  * アプリケーションのメインエントリーポイント
- * SkyWayとA-Frameの統合、モード管理
+ * モード管理とDebugMode制御
  */
-
-/* global SkyWayManager, attachVideoTextureToPlane */
-
-// DOM要素の取得
-const elements = {
-  remoteVideo: document.getElementById("remoteVideo"),
-  screen: document.getElementById("screen")
-};
-
-// SkyWayマネージャーのインスタンス
-let skyway = null;
 
 /**
  * アプリケーション状態管理
@@ -40,6 +29,9 @@ function toggleMode() {
   
   console.log(`[MODE TOGGLE] ${previousMode} → ${appState.currentMode}`);
   console.log(`[CURRENT MODE] ${appState.currentMode.toUpperCase()}`);
+  
+  // DebugModeに応じてHUD表示を更新
+  updateHudVisibility();
 }
 
 /**
@@ -64,81 +56,44 @@ function isControlMode() {
 }
 
 /**
- * アプリケーションの初期化と起動
+ * DebugModeに応じてHUD表示を制御
  */
-async function startApplication() {
-  try {
-    console.log('[APP START] Application starting...');
-    console.log(`[INITIAL MODE] ${appState.currentMode.toUpperCase()}`);
+function updateHudVisibility() {
+  // 操作モードでのみDebugModeの設定を適用
+  if (isControlMode()) {
+    const debugMode = window.uiState ? window.uiState.debugMode : false;
     
-    // SkyWayマネージャーの初期化
-    skyway = new SkyWayManager();
+    // HUD要素を取得
+    const hudText = document.getElementById('hudText');
+    const controllerInfo = document.getElementById('controllerInfo');
+    const modeText = document.getElementById('modeText');
     
-    console.log('[SKYWAY] Initializing SkyWay...');
-    await skyway.initialize();
-    
-    console.log('[SKYWAY] Joining room...');
-    await skyway.joinRoom();
-    
-    console.log('[SKYWAY] Connected to SkyWay room');
-
-    // ビデオ要素の自動再生対策
-    elements.remoteVideo.muted = true;
-    elements.remoteVideo.play().catch(() => {});
-
-    // Publicationの処理
-    skyway.handlePublications(async (publication) => {
-      await handleVideoPublication(publication);
-    });
-
-  } catch (error) {
-    console.error('[APP ERROR] Failed to start application:', error);
-    alert('アプリケーションの起動に失敗しました。コンソールを確認してください。');
+    // DebugModeに応じて表示/非表示
+    if (debugMode) {
+      // ON: すべて表示
+      if (hudText) hudText.setAttribute('visible', true);
+      if (controllerInfo) controllerInfo.setAttribute('visible', true);
+      if (modeText) modeText.setAttribute('visible', true);
+      console.log('[DEBUG MODE] HUD visible');
+    } else {
+      // OFF: すべて非表示
+      if (hudText) hudText.setAttribute('visible', false);
+      if (controllerInfo) controllerInfo.setAttribute('visible', false);
+      if (modeText) modeText.setAttribute('visible', false);
+      console.log('[DEBUG MODE] HUD hidden');
+    }
   }
 }
 
 /**
- * ビデオPublicationの処理
+ * アプリケーションの初期化
  */
-async function handleVideoPublication(publication) {
-  if (publication.contentType !== "video") return;
-  if (elements.remoteVideo.srcObject) return; // 既に1本接続済み
-
-  try {
-    await skyway.subscribeVideo(
-      publication,
-      elements.remoteVideo,
-      () => {
-        // ビデオがロードされた後にテクスチャをアタッチ
-        attachVideoTextureToPlane(elements.remoteVideo, elements.screen);
-        elements.remoteVideo.play().catch(() => {});
-        console.log('[VIDEO] Video texture attached to plane');
-      }
-    );
-  } catch (error) {
-    console.error('[VIDEO ERROR] Failed to subscribe video:', error);
-  }
-}
-
-/**
- * アプリケーションのクリーンアップ
- */
-async function cleanup() {
-  console.log('[APP CLEANUP] Cleaning up...');
+function initializeApplication() {
+  console.log('[APP START] Application starting...');
+  console.log(`[INITIAL MODE] ${appState.currentMode.toUpperCase()}`);
   
-  if (skyway) {
-    await skyway.cleanup();
-    skyway = null;
-  }
-  
-  // ビデオのクリーンアップ
-  if (elements.remoteVideo) {
-    elements.remoteVideo.pause();
-    elements.remoteVideo.removeAttribute("src");
-    elements.remoteVideo.load();
-  }
-  
-  console.log('[APP CLEANUP] Cleanup completed');
+  // 初期のHUD表示を設定
+  updateHudVisibility();
 }
 
 /**
@@ -152,29 +107,24 @@ window.addEventListener('unhandledrejection', (event) => {
   console.error('[PROMISE ERROR] Unhandled promise rejection:', event.reason);
 });
 
-/**
- * ページアンロード時のクリーンアップ
- */
-window.addEventListener('beforeunload', () => {
-  cleanup();
-});
-
-// アプリケーションの起動
-startApplication().catch(console.error);
+// アプリケーションの初期化
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initializeApplication);
+} else {
+  initializeApplication();
+}
 
 // グローバルに公開（デバッグ用）
 window.app = {
-  skyway,
-  elements,
   state: appState,
   toggleMode,
   getCurrentMode,
   isSettingsMode,
   isControlMode,
-  restart: startApplication,
-  cleanup
+  updateHudVisibility
 };
 
 // モード管理関数をグローバルに公開（a_frame.jsから使用）
 window.appToggleMode = toggleMode;
 window.appGetCurrentMode = getCurrentMode;
+window.appUpdateHudVisibility = updateHudVisibility;
