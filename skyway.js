@@ -31,8 +31,6 @@ window.skywayState = {
   
   // 接続情報
   userId: 'none',
-  resolution: 'none',
-  fps: 'none',
   
   // subscription管理
   subscriptions: new Set()
@@ -117,9 +115,7 @@ window.connectSkyWay = async function(roomNumber, appId, secret) {
     
     return {
       success: true,
-      userId: window.skywayState.userId,
-      resolution: window.skywayState.resolution,
-      fps: window.skywayState.fps
+      userId: window.skywayState.userId
     };
     
   } catch (error) {
@@ -169,8 +165,6 @@ window.disconnectSkyWay = async function() {
     window.skywayState.me = null;
     window.skywayState.connected = false;
     window.skywayState.userId = 'none';
-    window.skywayState.resolution = 'none';
-    window.skywayState.fps = 'none';
     window.skywayState.subscriptions.clear();
     
     console.log('[SKYWAY] Disconnected');
@@ -323,59 +317,9 @@ async function subscribeToPublication(publication) {
       // スクリーンに表示
       attachVideoToScreen(stream);
       
-      // ビデオ要素から解像度とFPSを取得
-      const remoteVideo = document.getElementById('remoteVideo');
-      if (remoteVideo) {
-        // loadedmetadataイベントで実際の解像度を取得
-        remoteVideo.addEventListener('loadedmetadata', () => {
-          const width = remoteVideo.videoWidth;
-          const height = remoteVideo.videoHeight;
-          
-          if (width && height) {
-            window.skywayState.resolution = `${width}x${height}`;
-            console.log('[SKYWAY] Video resolution:', window.skywayState.resolution);
-            window.addLog(`Resolution: ${window.skywayState.resolution}`);
-            
-            // UIを更新
-            if (window.updateDisplayInfo) {
-              window.updateDisplayInfo(
-                window.skywayState.userId,
-                window.skywayState.resolution,
-                window.skywayState.fps
-              );
-            }
-          }
-        }, { once: true });
-      }
-      
-      // トラックから情報を取得
-      const track = stream.track;
-      if (track && track.getSettings) {
-        const settings = track.getSettings();
-        
-        // FPSを取得
-        if (settings.frameRate) {
-          window.skywayState.fps = Math.round(settings.frameRate).toString();
-          console.log('[SKYWAY] Video FPS:', window.skywayState.fps);
-          window.addLog(`FPS: ${window.skywayState.fps}`);
-        }
-        
-        // 解像度（バックアップ）
-        if (settings.width && settings.height && !window.skywayState.resolution) {
-          window.skywayState.resolution = `${settings.width}x${settings.height}`;
-          window.addLog(`Resolution: ${window.skywayState.resolution}`);
-        }
-        
-        console.log('[SKYWAY] Video settings:', settings);
-      }
-      
       // UIを更新
       if (window.updateDisplayInfo) {
-        window.updateDisplayInfo(
-          window.skywayState.userId,
-          window.skywayState.resolution,
-          window.skywayState.fps
-        );
+        window.updateDisplayInfo(window.skywayState.userId);
       }
     }
     
@@ -392,11 +336,7 @@ async function subscribeToPublication(publication) {
  */
 function updateUIAfterConnect() {
   if (window.updateDisplayInfo) {
-    window.updateDisplayInfo(
-      window.skywayState.userId,
-      window.skywayState.resolution,
-      window.skywayState.fps
-    );
+    window.updateDisplayInfo(window.skywayState.userId);
   }
   
   if (window.uiState) {
@@ -409,7 +349,7 @@ function updateUIAfterConnect() {
  */
 function updateUIAfterDisconnect() {
   if (window.updateDisplayInfo) {
-    window.updateDisplayInfo('none', 'none', 'none');
+    window.updateDisplayInfo('none');
   }
   
   if (window.uiState) {

@@ -7,13 +7,6 @@
 
 /* global AFRAME, THREE */
 
-// 表示する仕様値（固定）
-const VR_DISPLAY_CONFIG = {
-  FRAME_W: 1080,
-  FRAME_H: 720,
-  FPS: 30
-};
-
 // グローバルなコントローラー状態管理
 window.controllerStates = {
   left: {
@@ -178,10 +171,10 @@ AFRAME.registerComponent('rotation-reader', {
     const y = THREE.MathUtils.radToDeg(rotation.y);
     const z = THREE.MathUtils.radToDeg(rotation.z);
 
-    // HUD更新
+    // HUD更新（HMD回転のみ表示）
     this.hudTextEl.setAttribute(
       "value",
-      `Frame\n- ${VR_DISPLAY_CONFIG.FRAME_W}*${VR_DISPLAY_CONFIG.FRAME_H}\n- ${VR_DISPLAY_CONFIG.FPS}fps\n\nHMD rotation (deg)\n- x: ${this.format3(x)}\n- y: ${this.format3(y)}\n- z: ${this.format3(z)}`
+      `HMD rotation (deg)\n- x: ${this.format3(x)}\n- y: ${this.format3(y)}\n- z: ${this.format3(z)}`
     );
   },
 

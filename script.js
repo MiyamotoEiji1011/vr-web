@@ -74,6 +74,11 @@ const el = {
   videoRes: document.getElementById("video-res"),
   videoFps: document.getElementById("video-fps"),
   videoHq: document.getElementById("video-hq"),
+
+  // Chat elements
+  chatMessages: document.getElementById("chat-messages"),
+  chatInput: document.getElementById("chat-input"),
+  chatSend: document.getElementById("chat-send"),
 };
 
 function currentMode() {
@@ -117,7 +122,7 @@ function updatePublishControls() {
   if (el.videoHq) el.videoHq.disabled = !publishEnabled || el.join.disabled || !el.pubVideo.checked;
 
   el.pubHint.textContent = publishEnabled
-    ? "※ Join前に映像/音声のPublish有無を選べます（映像ONなら画質も選べます）"
+    ? "※ Join前に映像/音声のPublish有無を選べます(映像ONなら画質も選べます)"
     : "※ モードが Subscribeのみ のため無効です";
 
   el.localNote.textContent = publishEnabled
@@ -141,9 +146,114 @@ let me = null;
 
 let localAudio = null;
 let localVideoStream = null;
+let localDataStream = null;
 let isMuted = false;
 
 const subscribed = new Set();
+const subscribedDataStreams = new Map(); // publication.id -> stream
+
+// ------------------------------
+// Chat UI
+// ------------------------------
+function addChatMessage(senderId, message, isMe = false) {
+  // 空のメッセージ表示を削除
+  const emptyMessage = el.chatMessages.querySelector('.chat-empty');
+  if (emptyMessage) {
+    emptyMessage.remove();
+  }
+
+  const messageDiv = document.createElement('div');
+  messageDiv.className = 'chat-message';
+
+  const header = document.createElement('div');
+  header.className = 'chat-message-header';
+
+  const sender = document.createElement('span');
+  sender.className = `chat-message-sender${isMe ? ' me' : ''}`;
+  sender.textContent = isMe ? `${senderId} (You)` : senderId;
+
+  const time = document.createElement('span');
+  time.className = 'chat-message-time';
+  const now = new Date();
+  time.textContent = now.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' });
+
+  header.appendChild(sender);
+  header.appendChild(time);
+
+  const content = document.createElement('div');
+  content.className = 'chat-message-content';
+  content.textContent = message;
+
+  messageDiv.appendChild(header);
+  messageDiv.appendChild(content);
+
+  el.chatMessages.appendChild(messageDiv);
+
+  // 自動スクロール
+  el.chatMessages.scrollTop = el.chatMessages.scrollHeight;
+}
+
+function addSystemMessage(message) {
+  const emptyMessage = el.chatMessages.querySelector('.chat-empty');
+  if (emptyMessage) {
+    emptyMessage.remove();
+  }
+
+  const messageDiv = document.createElement('div');
+  messageDiv.className = 'chat-system-message';
+  messageDiv.textContent = message;
+
+  el.chatMessages.appendChild(messageDiv);
+  el.chatMessages.scrollTop = el.chatMessages.scrollHeight;
+}
+
+function clearChatMessages() {
+  el.chatMessages.innerHTML = `
+    <div class="chat-empty">
+      <span class="chat-empty-icon">💬</span>
+      <p>まだメッセージがありません</p>
+      <p class="small muted">Joinしてメッセージを送信しましょう</p>
+    </div>
+  `;
+}
+
+function setChatEnabled(enabled) {
+  el.chatInput.disabled = !enabled;
+  el.chatSend.disabled = !enabled;
+}
+
+// チャット送信処理
+function setupChatHandlers() {
+  const sendMessage = () => {
+    const message = el.chatInput.value.trim();
+    if (!message || !localDataStream) return;
+
+    try {
+      // データを送信
+      localDataStream.write(message);
+      
+      // 自分のメッセージを表示
+      addChatMessage(me.id, message, true);
+      
+      // 入力欄をクリア
+      el.chatInput.value = '';
+    } catch (e) {
+      console.error('Failed to send message:', e);
+      alert('メッセージの送信に失敗しました');
+    }
+  };
+
+  el.chatSend.onclick = sendMessage;
+
+  el.chatInput.onkeydown = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  };
+}
+
+setupChatHandlers();
 
 // ------------------------------
 // Remote UI
@@ -152,6 +262,7 @@ function clearRemoteUi() {
   el.buttonArea.replaceChildren();
   el.remoteArea.replaceChildren();
   subscribed.clear();
+  subscribedDataStreams.clear();
 }
 
 function ensureSubscribeButton(publication, myId) {
@@ -177,6 +288,21 @@ async function subscribePublication(publication) {
     subscribed.add(publication.id);
 
     const { stream } = await me.subscribe(publication.id);
+
+    // データストリームの場合
+    if (publication.contentType === "data") {
+      subscribedDataStreams.set(publication.id, stream);
+      
+      // データ受信時の処理
+      stream.onData.add((data) => {
+        addChatMessage(publication.publisher.id, data, false);
+      });
+
+      const btn = document.getElementById(`subscribe-button-${publication.id}`);
+      if (btn) btn.textContent = `✅ ${publication.publisher.id} / ${publication.contentType}`;
+      
+      return;
+    }
 
     const card = document.createElement("div");
     card.className = "remote-card";
@@ -209,7 +335,7 @@ async function subscribePublication(publication) {
     el.remoteArea.appendChild(card);
     card.appendChild(mediaWrap);
 
-    // 再生開始（保険）
+    // 再生開始(保険)
     if (stream.track.kind === "video") {
       mediaEl.play().catch(() => {});
     }
@@ -253,8 +379,8 @@ function buildVideoConstraints() {
 
   const { w, h } = resToSize(resKey);
 
-  // preferHigh: 厳しめ（ideal強め）
-  // not preferHigh: ゆるめ（minも緩く）
+  // preferHigh: 厳しめ(ideal強め)
+  // not preferHigh: ゆるめ(minも緩め)
   if (preferHigh) {
     return {
       width: { ideal: w },
@@ -282,7 +408,7 @@ async function applyVideoQualityToLocalStream() {
   } catch (e) {
     console.warn("applyConstraints failed (preferred). fallback to loose constraints:", e);
 
-    // フォールバック（かなり緩い）
+    // フォールバック(かなり緩い)
     try {
       await track.applyConstraints({
         width: { ideal: 640 },
@@ -331,6 +457,14 @@ el.join.onclick = async () => {
     el.myId.textContent = me.id;
     setConnState("connected");
 
+    // データストリームを常に作成して公開
+    localDataStream = await SkyWayStreamFactory.createDataStream();
+    await me.publish(localDataStream, { type: "p2p" });
+    
+    // チャット機能を有効化
+    setChatEnabled(true);
+    addSystemMessage(`ルーム "${roomName}" に接続しました`);
+
     // publish
     if (publishEnabled) {
       localAudio = null;
@@ -346,7 +480,7 @@ el.join.onclick = async () => {
         localVideoStream = await SkyWayStreamFactory.createCameraVideoStream();
       }
 
-      // ★映像ONならここで画質を適用（publish前）
+      // ★映像ONならここで画質を適用(publish前)
       if (el.pubVideo.checked && localVideoStream) {
         await applyVideoQualityToLocalStream();
         attachLocalPreview(localVideoStream);
@@ -379,6 +513,7 @@ el.join.onclick = async () => {
       document.getElementById(`subscribe-button-${pubId}`)?.remove();
       document.getElementById(`media-${pubId}`)?.closest(".remote-card")?.remove();
       subscribed.delete(pubId);
+      subscribedDataStreams.delete(pubId);
     });
 
     // Leave
@@ -393,12 +528,17 @@ el.join.onclick = async () => {
 
         localAudio = null;
         localVideoStream = null;
+        localDataStream = null;
         isMuted = false;
 
         el.myId.textContent = "-";
         setConnState("disconnected");
         setUiJoined(false);
         clearRemoteUi();
+
+        // チャット機能を無効化
+        setChatEnabled(false);
+        clearChatMessages();
 
         el.localVideo.pause();
         el.localVideo.removeAttribute("src");
@@ -407,7 +547,7 @@ el.join.onclick = async () => {
       }
     };
 
-    // Mute toggle（publishしているものだけ）
+    // Mute toggle(publishしているものだけ)
     el.muteAv.onclick = () => {
       if (!me) return;
       isMuted = !isMuted;
@@ -427,9 +567,12 @@ el.join.onclick = async () => {
 
     setConnState("disconnected");
     setUiJoined(false);
+    setChatEnabled(false);
+    clearChatMessages();
     context = null;
     room = null;
     me = null;
+    localDataStream = null;
   }
 };
 

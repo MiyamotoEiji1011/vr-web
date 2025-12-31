@@ -8,7 +8,7 @@
 
 // ログ管理
 window.uiLogs = [];
-const MAX_LOG_LINES = 15;
+const MAX_LOG_LINES = 25;
 
 /**
  * ログを追加
@@ -61,9 +61,7 @@ window.uiState = {
   secretValue: 'Bk9LR3lnRG483XKgUQAzCoP7tpLBhMs45muc9zDOoxE=',  // デフォルトSecret
   
   // 表示情報
-  userid: 'none',
-  resolution: 'none',
-  fps: 'none'
+  userid: 'none'
 };
 
 /**
@@ -336,8 +334,6 @@ AFRAME.registerComponent('ui-button', {
         
         window.uiState.connected = true;
         window.uiState.userid = result.userId;
-        window.uiState.resolution = result.resolution;
-        window.uiState.fps = result.fps;
         
         // ボタンを更新
         updateConnectionButton(true);
@@ -375,8 +371,6 @@ AFRAME.registerComponent('ui-button', {
       
       window.uiState.connected = false;
       window.uiState.userid = 'none';
-      window.uiState.resolution = 'none';
-      window.uiState.fps = 'none';
       
       // ボタンを更新
       updateConnectionButton(false);
@@ -593,28 +587,20 @@ window.handleKeyPress = function(key) {
 /**
  * グローバル関数: 表示情報を更新
  */
-window.updateDisplayInfo = function(userid, resolution, fps) {
+window.updateDisplayInfo = function(userid) {
   // 状態を更新
   if (userid !== undefined) {
     window.uiState.userid = userid;
   }
   
-  if (resolution !== undefined) {
-    window.uiState.resolution = resolution;
-  }
-  
-  if (fps !== undefined) {
-    window.uiState.fps = fps;
-  }
-  
-  // 統合テキストを更新
+  // テキストを更新
   const displayInfoText = document.getElementById('displayInfoText');
   if (displayInfoText) {
-    const text = `USERID: ${window.uiState.userid}\nResolution: ${window.uiState.resolution}\nFPS: ${window.uiState.fps}`;
+    const text = `USERID: ${window.uiState.userid}`;
     displayInfoText.setAttribute('value', text);
   }
   
-  console.log('[UI] Display info updated:', window.uiState.userid, window.uiState.resolution, window.uiState.fps);
+  console.log('[UI] Display info updated:', window.uiState.userid);
 };
 
 // グローバルに公開

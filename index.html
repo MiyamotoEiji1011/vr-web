@@ -52,7 +52,7 @@
           </div>
 
           <div class="field">
-            <span class="label">Publish設定（Publishのみ / 両方で有効）</span>
+            <span class="label">Publish設定(Publishのみ / 両方で有効)</span>
             <div class="toggles">
               <label class="toggle">
                 <input id="pub-video" type="checkbox" checked />
@@ -86,7 +86,7 @@
 
               <label class="toggle">
                 <input id="video-hq" type="checkbox" />
-                <span>高画質優先（帯域が足りないとカクつく）</span>
+                <span>高画質優先(帯域が足りないとカクつく)</span>
               </label>
             </div>
 
@@ -138,13 +138,44 @@
       <section class="card">
         <div class="card-head">
           <h2 class="card-title">Publications</h2>
-          <div class="small muted">手動Subscribe用ボタン（自動Subscribe OFFのとき便利）</div>
+          <div class="small muted">手動Subscribe用ボタン(自動Subscribe OFFのとき便利)</div>
         </div>
         <div id="button-area" class="button-area"></div>
       </section>
+
+      <!-- データチャットセクション -->
+      <section class="card chat-section">
+        <div class="card-head">
+          <h2 class="card-title">💬 データチャット</h2>
+          <div class="small muted">ルーム内でテキストメッセージを送受信</div>
+        </div>
+
+        <div class="chat-container">
+          <div class="chat-messages" id="chat-messages">
+            <div class="chat-empty">
+              <span class="chat-empty-icon">💬</span>
+              <p>まだメッセージがありません</p>
+              <p class="small muted">Joinしてメッセージを送信しましょう</p>
+            </div>
+          </div>
+
+          <div class="chat-input-wrapper">
+            <input 
+              type="text" 
+              id="chat-input" 
+              class="chat-input" 
+              placeholder="メッセージを入力..." 
+              disabled
+            />
+            <button id="chat-send" class="btn primary chat-send-btn" disabled>
+              送信
+            </button>
+          </div>
+        </div>
+      </section>
     </main>
 
-    <!-- SkyWay UMD（skyway_room が生える） -->
+    <!-- SkyWay UMD(skyway_room が生える) -->
     <script src="https://cdn.jsdelivr.net/npm/@skyway-sdk/room/dist/skyway_room-latest.js"></script>
 
     <script src="script.js"></script>
