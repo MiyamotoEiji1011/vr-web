@@ -1,9 +1,10 @@
 /**
  * skyway.js
  * SkyWay接続・切断機能（VRはSubscribeのみ）
+ * VR操作データのDataStream送信機能を含む
  */
 
-/* global skyway_room */
+/* global skyway_room, THREE */
 
 // SkyWay SDKの取得
 const {
@@ -11,6 +12,7 @@ const {
   SkyWayAuthToken,
   SkyWayContext,
   SkyWayRoom,
+  SkyWayStreamFactory,
   uuidV4,
 } = skyway_room;
 
@@ -33,7 +35,12 @@ window.skywayState = {
   userId: 'none',
   
   // subscription管理
-  subscriptions: new Set()
+  subscriptions: new Set(),
+  
+  // DataStream関連
+  dataStream: null,
+  dataStreamInterval: null,
+  statusSendingActive: false
 };
 
 /**
@@ -103,12 +110,18 @@ window.connectSkyWay = async function(roomNumber, appId, secret) {
     window.skywayState.connected = true;
     window.skywayState.userId = window.skywayState.me.id;
     
-    // VRはpublishしない（subscribeのみ）
-    console.log('[SKYWAY] VR mode: Subscribe only (no publish)');
-    window.addLog('VR mode: Subscribe only');
+    // DataStreamを作成してpublish
+    console.log('[SKYWAY] Creating DataStream...');
+    window.skywayState.dataStream = await SkyWayStreamFactory.createDataStream();
+    await window.skywayState.me.publish(window.skywayState.dataStream);
+    console.log('[SKYWAY] DataStream published');
+    window.addLog('DataStream published');
     
     // 既存のpublicationをsubscribe
     setupSubscription();
+    
+    // VRステータス送信を開始
+    startStatusSending();
     
     // UIを更新
     updateUIAfterConnect();
@@ -152,6 +165,9 @@ window.disconnectSkyWay = async function() {
       console.log('[SKYWAY] Room disposed');
     }
     
+    // VRステータス送信を停止
+    stopStatusSending();
+    
     // スクリーンから映像を削除
     removeVideoFromScreen();
     
@@ -166,6 +182,9 @@ window.disconnectSkyWay = async function() {
     window.skywayState.connected = false;
     window.skywayState.userId = 'none';
     window.skywayState.subscriptions.clear();
+    window.skywayState.dataStream = null;
+    window.skywayState.dataStreamInterval = null;
+    window.skywayState.statusSendingActive = false;
     
     console.log('[SKYWAY] Disconnected');
     window.addLog('Disconnected');
@@ -199,11 +218,13 @@ function attachVideoToScreen(videoStream) {
       console.warn('[SKYWAY] Video play failed:', error);
     });
     
-    // スクリーンにビデオテクスチャを設定（opacity: 1.0で明るく表示）
+    // スクリーンにビデオテクスチャを設定
     screen.setAttribute('material', {
+      shader: 'flat',
       src: '#remoteVideo',
       opacity: 1.0,
-      transparent: false
+      transparent: false,
+      color: '#FFFFFF'  // 白色で映像の色を保持
     });
     
     console.log('[SKYWAY] Video attached to screen');
@@ -228,7 +249,13 @@ function removeVideoFromScreen() {
   }
   
   if (screen) {
-    screen.setAttribute('material', 'color', '#111');
+    // materialを初期状態にリセット（srcを削除し、shaderをflatに戻す）
+    screen.setAttribute('material', {
+      shader: 'flat',
+      src: '',
+      opacity: 1.0,
+      transparent: false
+    });
   }
   
   console.log('[SKYWAY] Video removed from screen');
@@ -247,44 +274,58 @@ function setupSubscription() {
   console.log('[SKYWAY] Setting up subscriptions...');
   window.addLog('Setting up subscriptions...');
   
-  // 既存のpublicationをsubscribe（配列の最後のみ）
-  const publications = Array.from(room.publications);
-  console.log(`[SKYWAY] Found ${publications.length} existing publications`);
-  window.addLog(`Found ${publications.length} publications`);
+  // 既存のpublicationからvideo typeのみをフィルタリング
+  const allPublications = Array.from(room.publications);
+  const videoPublications = allPublications.filter(pub => pub.contentType === 'video');
   
-  if (publications.length > 0) {
-    // 配列の最後のpublicationのみsubscribe
-    const lastPublication = publications[publications.length - 1];
+  console.log(`[SKYWAY] Found ${allPublications.length} total publications, ${videoPublications.length} video publications`);
+  window.addLog(`Found ${videoPublications.length} video publications`);
+  
+  if (videoPublications.length > 0) {
+    // ビデオpublicationの最後のものをsubscribe
+    const lastVideoPublication = videoPublications[videoPublications.length - 1];
     
-    if (lastPublication.publisher.id !== me.id) {
-      subscribeToPublication(lastPublication);
+    if (lastVideoPublication.publisher.id !== me.id) {
+      console.log('[SKYWAY] Subscribing to existing video publication:', lastVideoPublication.id);
+      subscribeToPublication(lastVideoPublication);
     }
   }
   
-  // 新しいpublicationを自動購読（最後のもののみ）
+  // 新しいpublicationを自動購読（ビデオのみ）
   room.onStreamPublished.add((e) => {
-    console.log('[SKYWAY] New stream published:', e.publication.id);
-    window.addLog('New stream published');
+    console.log('[SKYWAY] New stream published:', e.publication.id, e.publication.contentType);
+    
+    // ビデオ以外は無視
+    if (e.publication.contentType !== 'video') {
+      console.log('[SKYWAY] Skipping non-video publication');
+      return;
+    }
+    
+    window.addLog('New video published');
     
     if (e.publication.publisher.id !== me.id) {
       // 既存のsubscriptionをクリア
       window.skywayState.subscriptions.clear();
       
-      // 新しいpublicationをsubscribe
+      // 新しいビデオpublicationをsubscribe
       subscribeToPublication(e.publication);
     }
   });
   
   // unpublishイベント
   room.onStreamUnpublished.add((e) => {
-    console.log('[SKYWAY] Stream unpublished:', e.publication.id);
+    console.log('[SKYWAY] Stream unpublished:', e.publication.id, e.publication.contentType);
     window.addLog('Stream unpublished');
     
-    // subscriptionから削除
-    window.skywayState.subscriptions.delete(e.publication.id);
-    
-    // 映像を削除
-    removeVideoFromScreen();
+    // ビデオpublicationの場合のみ映像を削除
+    if (e.publication.contentType === 'video') {
+      // subscriptionから削除
+      window.skywayState.subscriptions.delete(e.publication.id);
+      
+      // 映像を削除
+      removeVideoFromScreen();
+      window.addLog('Video removed from screen');
+    }
   });
   
   console.log('[SKYWAY] Subscription setup complete');
@@ -357,10 +398,119 @@ function updateUIAfterDisconnect() {
   }
 }
 
+/**
+ * VRステータスを収集
+ */
+function collectVRStatus() {
+  // カメラの回転を取得
+  const camera = document.getElementById('camera');
+  let cameraX = 0;
+  let cameraY = 0;
+  
+  if (camera && camera.object3D && typeof THREE !== 'undefined') {
+    // ラジアンから度に変換
+    cameraX = THREE.MathUtils.radToDeg(camera.object3D.rotation.x);
+    cameraY = THREE.MathUtils.radToDeg(camera.object3D.rotation.y);
+  }
+  
+  // コントローラーの状態を取得
+  const controllers = window.controllerStates || {
+    left: {
+      trigger: 0, grip: 0, buttonX: 0, buttonY: 0,
+      thumbstick: { x: 0, y: 0 }
+    },
+    right: {
+      trigger: 0, grip: 0, buttonA: 0, buttonB: 0,
+      thumbstick: { x: 0, y: 0 }
+    }
+  };
+  
+  // モード状態を取得（設定モード: 0, 操作モード: 1）
+  const currentMode = window.appGetCurrentMode ? window.appGetCurrentMode() : 'settings';
+  const active = (currentMode === 'control') ? 1 : 0;
+  
+  // データ構造を作成
+  const status = {
+    version: "1.0",
+    active: active,
+    "X-Camera": parseFloat(cameraX.toFixed(3)),
+    "Y-Camera": parseFloat(cameraY.toFixed(3)),
+    "R_X-Joystick": parseFloat(controllers.right.thumbstick.x.toFixed(3)),
+    "R_Y-Joystick": parseFloat(controllers.right.thumbstick.y.toFixed(3)),
+    "R_A-Button": controllers.right.buttonA || 0,
+    "R_B-Button": controllers.right.buttonB || 0,
+    "R_T-Button": parseFloat((controllers.right.trigger || 0).toFixed(3)),
+    "R_G-Button": parseFloat((controllers.right.grip || 0).toFixed(3)),
+    "L_X-Joystick": parseFloat(controllers.left.thumbstick.x.toFixed(3)),
+    "L_Y-Joystick": parseFloat(controllers.left.thumbstick.y.toFixed(3)),
+    "L_X-Button": controllers.left.buttonX || 0,
+    "L_Y-Button": controllers.left.buttonY || 0,
+    "L_T-Button": parseFloat((controllers.left.trigger || 0).toFixed(3)),
+    "L_G-Button": parseFloat((controllers.left.grip || 0).toFixed(3))
+  };
+  
+  return status;
+}
+
+/**
+ * VRステータスを送信
+ */
+function sendVRStatus() {
+  if (!window.skywayState.connected || !window.skywayState.dataStream) {
+    return;
+  }
+  
+  try {
+    const status = collectVRStatus();
+    const jsonData = JSON.stringify(status);
+    window.skywayState.dataStream.write(jsonData);
+  } catch (error) {
+    console.error('[SKYWAY] Failed to send VR status:', error);
+  }
+}
+
+/**
+ * VRステータス送信を開始
+ */
+function startStatusSending() {
+  if (window.skywayState.statusSendingActive) {
+    return;
+  }
+  
+  console.log('[SKYWAY] Starting VR status sending...');
+  window.addLog('VR status sending started');
+  
+  window.skywayState.statusSendingActive = true;
+  
+  // 100msごとに送信（10Hz）
+  window.skywayState.dataStreamInterval = setInterval(() => {
+    sendVRStatus();
+  }, 100);
+}
+
+/**
+ * VRステータス送信を停止
+ */
+function stopStatusSending() {
+  if (!window.skywayState.statusSendingActive) {
+    return;
+  }
+  
+  console.log('[SKYWAY] Stopping VR status sending...');
+  window.addLog('VR status sending stopped');
+  
+  window.skywayState.statusSendingActive = false;
+  
+  if (window.skywayState.dataStreamInterval) {
+    clearInterval(window.skywayState.dataStreamInterval);
+    window.skywayState.dataStreamInterval = null;
+  }
+}
+
 // グローバルに公開
 window.skywayState = window.skywayState;
 window.connectSkyWay = window.connectSkyWay;
 window.disconnectSkyWay = window.disconnectSkyWay;
 
-console.log('[SKYWAY] Module loaded (VR Subscribe-only mode)');
+console.log('[SKYWAY] Module loaded (DataStream + VR Status sending)');
 window.addLog('SkyWay module loaded');

@@ -89,6 +89,15 @@
       </a-entity>
     </a-entity>
 
+    <!-- ========== 初期位置マーカー（ワールド座標固定） ========== -->
+    <!-- 操作モード時の初期位置(0,0,0)正面を示す赤い点 -->
+    <a-sphere id="initialPositionMarker"
+              position="0 1.4 -1.9"
+              radius="0.03"
+              color="#FF0000"
+              material="emissive: #FF0000; emissiveIntensity: 0.5">
+    </a-sphere>
+
     <!-- ========== 設定モード用UI（固定位置、カメラ追従なし） ========== -->
     <a-entity id="settingsModeUI" position="0 1 -2.5">
       

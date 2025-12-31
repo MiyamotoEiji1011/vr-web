@@ -376,6 +376,9 @@ AFRAME.registerComponent('mode-manager', {
     this.controlModeUI = document.getElementById("controlModeUI");
     this.settingsModeUI = document.getElementById("settingsModeUI");
     
+    // 初期位置マーカーの取得
+    this.initialPositionMarker = document.getElementById("initialPositionMarker");
+    
     // コントローラー要素の取得
     this.leftController = document.getElementById("leftOculus");
     this.rightController = document.getElementById("rightOculus");
@@ -432,10 +435,15 @@ AFRAME.registerComponent('mode-manager', {
       this.controlModeUI.setAttribute('visible', false);
     }
     
+    // 初期位置マーカーを非表示
+    if (this.initialPositionMarker) {
+      this.initialPositionMarker.setAttribute('visible', false);
+    }
+    
     // コントローラーモデルを表示
     this.showControllerModels();
     
-    console.log('[MODE MANAGER] Settings UI displayed, controller models shown');
+    console.log('[MODE MANAGER] Settings UI displayed, controller models shown, marker hidden');
   },
   
   /**
@@ -452,10 +460,15 @@ AFRAME.registerComponent('mode-manager', {
       this.controlModeUI.setAttribute('visible', true);
     }
     
+    // 初期位置マーカーを表示
+    if (this.initialPositionMarker) {
+      this.initialPositionMarker.setAttribute('visible', true);
+    }
+    
     // コントローラーモデルを非表示
     this.hideControllerModels();
     
-    console.log('[MODE MANAGER] Control UI displayed, controller models hidden');
+    console.log('[MODE MANAGER] Control UI displayed, controller models hidden, marker visible');
   },
   
   /**

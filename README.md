@@ -1,9 +1,64 @@
 # VR Video Streaming with SkyWay
 
 WebXR対応のVRビデオストリーミングアプリケーション  
-VR側はSubscribeのみ、マウス操作対応、ログ表示機能付き
+VR側はDataStreamでVR操作データを送信、マウス操作対応、ログ表示機能付き
 
 ## 最新の修正内容
+
+### ✅ VR操作ステータスのDataStream送信機能
+
+**新機能:**
+SkyWayのDataStreamを使用してVRの操作ステータスをリアルタイムで送信します。
+
+**送信データ構造:**
+```json
+{
+  "version": "1.0",
+  "active": 0,  // 0: 設定モード, 1: 操作モード
+  "X-Camera": 12.345,
+  "Y-Camera": -34.567,
+  "R_X-Joystick": 0.123,
+  "R_Y-Joystick": -0.456,
+  "R_A-Button": 0,
+  "R_B-Button": 1,
+  "R_T-Button": 0.789,
+  "R_G-Button": 0.234,
+  "L_X-Joystick": -0.123,
+  "L_Y-Joystick": 0.456,
+  "L_X-Button": 1,
+  "L_Y-Button": 0,
+  "L_T-Button": 0.567,
+  "L_G-Button": 0.890
+}
+```
+
+**送信仕様:**
+- 送信頻度: 100ms (10Hz)
+- 設定モード時: `active: 0` で送信継続
+- 操作モード時: `active: 1` で送信
+- 接続中のみ送信
+- 切断時に自動停止
+
+**実装:**
+1. `SkyWayStreamFactory.createDataStream()` でDataStream作成
+2. 接続時に自動publish
+3. `collectVRStatus()` でカメラ・コントローラー情報収集
+4. `sendVRStatus()` でJSON形式で送信
+5. 100msごとに自動送信
+
+### ✅ スクリーン色変更問題の修正
+
+**問題:**
+接続を切り、再接続した際にスクリーンの色が変わる
+
+**原因:**
+- 切断時: `material.color = '#111'` を設定
+- 再接続時: `material.src` のみ設定
+- `color` が残ったまま `src` と混ざって表示
+
+**解決:**
+- 再接続時に `color: '#FFFFFF'` で白色にリセット
+- 映像が正しい色で表示される
 
 ### ✅ 解像度・FPS機能の完全削除
 
@@ -91,12 +146,28 @@ HMD rotation (deg)
 - 接続中: 赤色「Disconnect」
 - ホバー色も状態に応じて変化
 
-### VR Subscribe-only モード
-- publishなし（subscribeのみ）
+### VR DataStream送信モード
+- **ビデオ**: Subscribe専用（映像受信のみ）
+- **DataStream**: Publish専用（VR操作データ送信）
+- 送信頻度: 100ms (10Hz)
+- 送信内容: カメラ回転、コントローラー状態、モード状態
+- 設定モード時も送信継続（`active: 0`）
+
+### VR操作データ送信
+**送信データ:**
+- バージョン情報
+- アクティブ状態（設定/操作モード）
+- カメラ回転（X, Y）
+- 右コントローラー（ジョイスティック、ボタンA/B、トリガー、グリップ）
+- 左コントローラー（ジョイスティック、ボタンX/Y、トリガー、グリップ）
+
+**自動制御:**
+- 接続時: DataStream作成 → Publish → 送信開始
+- 切断時: 送信停止 → DataStream解放
 - 複数publishがある場合、配列の最後のみ表示
 - 新しいpublicationを自動購読
 
-## 接続フロー（簡略化）
+## 接続フロー
 
 ```
 1. Connectボタンクリック
@@ -107,17 +178,39 @@ HMD rotation (deg)
    ↓
 4. ルーム参加（p2pタイプ）
    ↓
-5. 既存のpublicationをチェック
+5. DataStream作成
+   ↓
+6. DataStreamをpublish
+   ↓
+7. VR操作データ送信開始（100ms間隔）
+   ↓
+8. 既存のビデオpublicationをチェック
    ├─ あり → 配列の最後をsubscribe
    └─ なし → 待機
    ↓
-6. 新しいpublicationを監視
+9. 新しいビデオpublicationを監視
    ↓
-7. ビデオストリームを受信
+10. ビデオストリームを受信
    ↓
-8. VRスクリーンに表示
+11. VRスクリーンに表示
    ↓
-9. USERIDを更新
+12. USERIDを更新
+```
+
+## 切断フロー
+
+```
+1. Disconnectボタンクリック
+   ↓
+2. VR操作データ送信停止
+   ↓
+3. ルームから退出
+   ↓
+4. ルームを破棄
+   ↓
+5. スクリーンから映像を削除
+   ↓
+6. 状態リセット
 ```
 
 ## 削除された機能
@@ -184,13 +277,14 @@ SYSTEM LOG
 [14:24:13] Context created
 [14:24:14] Room: room1
 [14:24:15] UserID: abc123xy...
-[14:24:16] VR mode: Subscribe only
-[14:24:17] Setting up subscriptions...
-[14:24:18] Found 1 publications
-[14:24:19] Subscribing to video...
-[14:24:20] Video stream received
-[14:24:21] Video attached to screen
-[14:24:22] Subscribed successfully
+[14:24:16] DataStream published
+[14:24:17] VR status sending started
+[14:24:18] Setting up subscriptions...
+[14:24:19] Found 1 publications
+[14:24:20] Subscribing to video...
+[14:24:21] Video stream received
+[14:24:22] Video attached to screen
+[14:24:23] Subscribed successfully
 ```
 
 ### 切断時
@@ -199,7 +293,10 @@ SYSTEM LOG
 [14:30:00] Disconnecting...
 [14:30:01] Left room
 [14:30:02] Room disposed
-[14:30:03] Video removed
+[14:30:03] VR status sending stopped
+[14:30:04] Video removed
+[14:30:05] Disconnected
+```
 [14:30:04] Disconnected
 ```
 
@@ -367,7 +464,17 @@ console.log('Connected:', window.uiState.connected);
 
 ## 変更履歴
 
-### v2.0（最新）
+### v3.0（最新）
+- **追加:** VR操作ステータスのDataStream送信機能
+  - SkyWayStreamFactory.createDataStream()を使用
+  - カメラ回転、コントローラー状態を100ms間隔で送信
+  - 設定モード・操作モードの両方で送信
+  - active値でモード状態を識別
+- **修正:** スクリーン色変更問題
+  - 再接続時にcolor属性を白色にリセット
+  - 映像が正しい色で表示されるように修正
+
+### v2.0
 - **削除:** 解像度・FPS機能を完全に削除
   - 設定モードUI（正面パネル）から削除
   - 操作モードHUDから削除
