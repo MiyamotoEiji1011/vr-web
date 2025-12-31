@@ -22,7 +22,7 @@
 </head>
 
 <body>
-  <a-scene>
+  <a-scene cursor="rayOrigin: mouse">
     <!-- カメラリグ -->
     <a-entity id="camera-rig" position="0 0 0">
       <!-- カメラ -->
@@ -233,39 +233,20 @@
           position="0 -0.05 0.01">
         </a-plane>
 
-        <!-- Connect ボタン -->
+        <!-- Connect/Disconnect ボタン（切り替え式） -->
         <a-plane 
-          id="connectButton"
+          id="connectionButton"
           class="ui-button"
           width="1.2" 
           height="0.2"
           color="#27AE60"
-          position="0 -0.35 0.01"
-          ui-button="action: connect"
-         >
+          position="0 -0.5 0.01"
+          ui-button="action: toggleConnection">
         </a-plane>
         <a-text 
+          id="connectionButtonText"
           value="Connect"
-          position="0 -0.35 0.02"
-          width="1.6"
-          align="center"
-          color="#FFFFFF">
-        </a-text>
-
-        <!-- Disconnect ボタン -->
-        <a-plane 
-          id="disconnectButton"
-          class="ui-button"
-          width="1.2" 
-          height="0.2"
-          color="#E74C3C"
-          position="0 -0.65 0.01"
-          ui-button="action: disconnect"
-         >
-        </a-plane>
-        <a-text 
-          value="Disconnect"
-          position="0 -0.65 0.02"
+          position="0 -0.5 0.02"
           width="1.6"
           align="center"
           color="#FFFFFF">
@@ -420,7 +401,16 @@
           position="0 0 0">
         </a-plane>
 
-        <!-- 空のパネル -->
+        <!-- ログ表示 -->
+        <a-text 
+          id="logText"
+          value="SYSTEM LOG\n\nWaiting..."
+          position="-0.65 0.8 0.01"
+          width="1.3"
+          align="left"
+          color="#00FF00"
+          wrap-count="25">
+        </a-text>
 
       </a-entity>
 
