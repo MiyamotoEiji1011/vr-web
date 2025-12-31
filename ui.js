@@ -223,7 +223,20 @@ AFRAME.registerComponent('ui-button', {
     this.el.addEventListener('raycaster-intersected', () => {
       if (!this.isHovered) {
         this.isHovered = true;
-        this.el.setAttribute('color', this.hoverColor);
+        
+        // toggleConnectionの場合、接続状態に応じてホバー色を変更
+        let currentHoverColor = this.hoverColor;
+        if (action === 'toggleConnection') {
+          if (window.uiState && window.uiState.connected) {
+            // 接続中: 赤系のホバー色
+            currentHoverColor = '#EC7063';
+          } else {
+            // 未接続: 緑系のホバー色
+            currentHoverColor = '#2ECC71';
+          }
+        }
+        
+        this.el.setAttribute('color', currentHoverColor);
         console.log('[UI BUTTON] Hover:', this.data.action);
       }
     });
@@ -231,7 +244,17 @@ AFRAME.registerComponent('ui-button', {
     this.el.addEventListener('raycaster-intersected-cleared', () => {
       if (this.isHovered) {
         this.isHovered = false;
-        this.el.setAttribute('color', this.originalColor);
+        
+        // toggleConnectionの場合、接続状態に応じて元の色を取得
+        let originalColor = this.originalColor;
+        if (action === 'toggleConnection') {
+          const button = document.getElementById('connectionButton');
+          if (button) {
+            originalColor = button.getAttribute('color');
+          }
+        }
+        
+        this.el.setAttribute('color', originalColor);
         console.log('[UI BUTTON] Hover cleared:', this.data.action);
       }
     });
@@ -574,20 +597,21 @@ window.updateDisplayInfo = function(userid, resolution, fps) {
   // 状態を更新
   if (userid !== undefined) {
     window.uiState.userid = userid;
-    const el = document.getElementById('useridText');
-    if (el) el.setAttribute('value', userid);
   }
   
   if (resolution !== undefined) {
     window.uiState.resolution = resolution;
-    const el = document.getElementById('resolutionText');
-    if (el) el.setAttribute('value', resolution);
   }
   
   if (fps !== undefined) {
     window.uiState.fps = fps;
-    const el = document.getElementById('fpsText');
-    if (el) el.setAttribute('value', fps);
+  }
+  
+  // 統合テキストを更新
+  const displayInfoText = document.getElementById('displayInfoText');
+  if (displayInfoText) {
+    const text = `USERID: ${window.uiState.userid}\nResolution: ${window.uiState.resolution}\nFPS: ${window.uiState.fps}`;
+    displayInfoText.setAttribute('value', text);
   }
   
   console.log('[UI] Display info updated:', window.uiState.userid, window.uiState.resolution, window.uiState.fps);

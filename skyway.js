@@ -205,8 +205,12 @@ function attachVideoToScreen(videoStream) {
       console.warn('[SKYWAY] Video play failed:', error);
     });
     
-    // スクリーンにビデオテクスチャを設定
-    screen.setAttribute('material', 'src', '#remoteVideo');
+    // スクリーンにビデオテクスチャを設定（opacity: 1.0で明るく表示）
+    screen.setAttribute('material', {
+      src: '#remoteVideo',
+      opacity: 1.0,
+      transparent: false
+    });
     
     console.log('[SKYWAY] Video attached to screen');
     window.addLog('Video attached to screen');
@@ -316,20 +320,54 @@ async function subscribeToPublication(publication) {
     if (stream.track.kind === 'video') {
       console.log('[SKYWAY] Video stream received');
       
-      // 映像情報を取得
+      // スクリーンに表示
+      attachVideoToScreen(stream);
+      
+      // ビデオ要素から解像度とFPSを取得
+      const remoteVideo = document.getElementById('remoteVideo');
+      if (remoteVideo) {
+        // loadedmetadataイベントで実際の解像度を取得
+        remoteVideo.addEventListener('loadedmetadata', () => {
+          const width = remoteVideo.videoWidth;
+          const height = remoteVideo.videoHeight;
+          
+          if (width && height) {
+            window.skywayState.resolution = `${width}x${height}`;
+            console.log('[SKYWAY] Video resolution:', window.skywayState.resolution);
+            window.addLog(`Resolution: ${window.skywayState.resolution}`);
+            
+            // UIを更新
+            if (window.updateDisplayInfo) {
+              window.updateDisplayInfo(
+                window.skywayState.userId,
+                window.skywayState.resolution,
+                window.skywayState.fps
+              );
+            }
+          }
+        }, { once: true });
+      }
+      
+      // トラックから情報を取得
       const track = stream.track;
       if (track && track.getSettings) {
         const settings = track.getSettings();
-        window.skywayState.resolution = `${settings.width}x${settings.height}`;
-        window.skywayState.fps = settings.frameRate ? settings.frameRate.toString() : '30';
+        
+        // FPSを取得
+        if (settings.frameRate) {
+          window.skywayState.fps = Math.round(settings.frameRate).toString();
+          console.log('[SKYWAY] Video FPS:', window.skywayState.fps);
+          window.addLog(`FPS: ${window.skywayState.fps}`);
+        }
+        
+        // 解像度（バックアップ）
+        if (settings.width && settings.height && !window.skywayState.resolution) {
+          window.skywayState.resolution = `${settings.width}x${settings.height}`;
+          window.addLog(`Resolution: ${window.skywayState.resolution}`);
+        }
         
         console.log('[SKYWAY] Video settings:', settings);
-        window.addLog(`Resolution: ${window.skywayState.resolution}`);
-        window.addLog(`FPS: ${window.skywayState.fps}`);
       }
-      
-      // スクリーンに表示
-      attachVideoToScreen(stream);
       
       // UIを更新
       if (window.updateDisplayInfo) {

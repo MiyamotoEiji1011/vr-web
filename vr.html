@@ -331,62 +331,16 @@
           position="0 0.28 0.01">
         </a-plane>
 
-        <!-- USERID表示 -->
-        <a-entity position="0 0.05 0.01">
-          <a-text 
-            value="USERID"
-            position="-0.9 0 0"
-            width="1.5"
-            align="left"
-            color="#FFFFFF">
-          </a-text>
-          <a-text 
-            id="useridText"
-            value="*************"
-            position="-0.05 0 0"
-            width="1.4"
-            align="left"
-            color="#FFFFFF">
-          </a-text>
-        </a-entity>
-
-        <!-- 解像度表示 -->
-        <a-entity position="0 -0.2 0.01">
-          <a-text 
-            value="Resolution:"
-            position="-0.9 0 0"
-            width="1.5"
-            align="left"
-            color="#FFFFFF">
-          </a-text>
-          <a-text 
-            id="resolutionText"
-            value="1080x720"
-            position="0.1 0 0"
-            width="1.4"
-            align="left"
-            color="#FFFFFF">
-          </a-text>
-        </a-entity>
-
-        <!-- FPS表示 -->
-        <a-entity position="0 -0.45 0.01">
-          <a-text 
-            value="FPS:"
-            position="-0.9 0 0"
-            width="1.5"
-            align="left"
-            color="#FFFFFF">
-          </a-text>
-          <a-text 
-            id="fpsText"
-            value="30"
-            position="0.1 0 0"
-            width="1.4"
-            align="left"
-            color="#FFFFFF">
-          </a-text>
-        </a-entity>
+        <!-- USERID/解像度/FPS 統合表示 -->
+        <a-text 
+          id="displayInfoText"
+          value="USERID: none&#10;Resolution: none&#10;FPS: none"
+          position="-0.9 0 0.01"
+          width="1.4"
+          align="left"
+          color="#FFFFFF"
+          line-height="60">
+        </a-text>
 
       </a-entity>
 
